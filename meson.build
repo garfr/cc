@@ -1,13 +1,13 @@
-project('ccc', 'c')
+project('cc', 'c')
 
 src = [
-    'src/ccc.c'
+    'src/cc.c'
 ]
 
 inc = include_directories('include')
 
-ccc = executable(
-    'ccc',
+cc = executable(
+    'cc',
     src,
     c_args : ['-Wall', '-Wextra', '-Werror', '-std=c99', '-pedantic'],
     include_directories : [inc],
