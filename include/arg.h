@@ -1,9 +1,9 @@
 #ifndef CC_ARG_H
 #define CC_ARG_H
 
-/* arg.h - parses declaratively specified command line arguments 
+/* arg.h - parses declaratively specified command line arguments
  *
- * expected options should be placed in an array, ending with NULL and passed 
+ * expected options should be placed in an array, ending with NULL and passed
  * to arg_parse, the results will be filled into the option structs
  */
 
@@ -29,7 +29,7 @@ struct arg_flag {
     bool long_flag;
     enum arg_kind arg_t;
     enum arg_lvl arg_lvl;
-    
+
     /* flag values, filled in by parser */
     bool found;
     union {
@@ -38,7 +38,8 @@ struct arg_flag {
     } arg;
 };
 
-/* returns NULL on success, a pointer to the invalid flag on failure */
+/* returns false on failure, setting *err to NULL or a pointer to the option 
+ * struct that caused the problems */
 bool arg_parse(int argc,
 	       const char **argv,
 	       struct arg_flag **flags,
