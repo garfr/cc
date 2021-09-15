@@ -3,6 +3,8 @@ project('cc', 'c')
 src = [
     'src/cc.c',
     'src/arg.c',
+    'src/lex.c',
+    'src/helpers.c',
 ]
 
 inc = include_directories('include')

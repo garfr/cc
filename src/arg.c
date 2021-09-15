@@ -70,7 +70,7 @@ arg_parse(int argc,
 
 	    i += ret;
 	}
-	else 
+	else
 	    return false;
     }
     return true;
