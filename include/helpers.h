@@ -13,7 +13,7 @@ struct src_file {
 
 bool src_file_open(const char *filename, struct src_file *f);
 void src_file_close(struct src_file *f);
-    
+
 struct src_range {
     size_t s1;
     size_t s2;

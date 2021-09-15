@@ -53,9 +53,9 @@ int main(int argc, const char **argv) {
     while ((tok = lex_next(lex)).t != TOKEN_EOF) {
 	lex_print(stdout, tok);
     }
-    
+
     lex_free(lex);
-    
+
     printf("%s", comp_unit.buf);
     return EXIT_SUCCESS;
 }

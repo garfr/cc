@@ -95,15 +95,15 @@ get_tok(struct lexer *l) {
     if (IS_EOF(l)) {
 	return make_tok(l, TOKEN_EOF);
     }
-    
+
     if (isalpha(c) || c == '_') {
 	return lex_id(l);
     }
-    
+
     if (isdigit(c)) {
 	return lex_num(l);
     }
-    
+
     switch (c) {
     case '[':
 	return make_tok(l, TOKEN_PN_LBRACK);
@@ -147,7 +147,7 @@ lex_next(struct lexer *l) {
     }
     return get_tok(l);
 }
-    
+
 struct token
 lex_peek(struct lexer *l) {
     if (l->peekf)
