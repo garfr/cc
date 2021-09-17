@@ -32,3 +32,8 @@ void
 src_file_close(struct src_file *f) {
     free((char*)f->buf);
 }
+
+void
+print_range(FILE *f, const struct src_range *rng) {
+    fprintf(f, "%.*s", (int) rng->s2 - rng->s1, (char*)rng->f->buf + rng->s1);
+}

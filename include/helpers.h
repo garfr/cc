@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 struct src_file {
     const uint8_t *buf;
@@ -19,5 +20,7 @@ struct src_range {
     size_t s2;
     struct src_file *f;
 };
+
+void print_range(FILE *f, const struct src_range *rng);
 
 #endif

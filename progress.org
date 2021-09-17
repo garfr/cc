@@ -1,0 +1,56 @@
+* cc - a project c compiler
+
+The goal of this project is to produce a C compiler covering most of the C99 language.
+Some parts of the C99 spec may be omitted, but the compiler is written in pure C99 and should be able to compile itself.
+
+** Compiler Phases
+
+*** Lexing
+   - Contained in the files lex.h, and lex.c
+   - I opted not to use lex, or another lexer generator
+   - The C standard specifies tokens exactly, so I used that as my primary resource
+   - Usages of finite automata are only needed on paper, the lexer contains only switch statements and loops
+   - Carrying position information is important to error handling later
+   - Further detail in [[*Lexical Analysis]]
+   
+** Data Structures
+
+** Lexical Analysis
+
+*** Lexical Syntax of C
+
+There are 37 keywords in the C99 spec, which are:
+
+auto, break, case, char, const, continue, default, do, double, else, enum, extern,
+float, for, goto, if, infline, int, long, register, restrict, return, short, signed,
+sizeof, static, struct, switch, typedef, union, unsigned, void, volatile, while,
+_Bool, _Complex, _Imaginary
+
+Tokens in C99 are "reserved" meaning that no identifier can use these tokens as names.
+Because of this, each keyword is given its own keyword.
+
+There are also several elements of punctuation which are also
+
+[ ] ( ) { } . -> ++ -- & * + - ~ ! / % << >> < > <= >= == != ^ | && || ? : ; ...
+= *= /= %= += -= <<= >>= &= ^= |= , # ##
+
+Each of these punctuation marks are also given a token type.
+
+C99 only requires that implementations allow identifiers to be made of latin-1 characters, so Unicode identifiers don't need to be accepted.
+
+ident ::= [a-zA-Z_][a-zA-Z0-_]*
+
+int ::= intval intsuffix?
+intval ::= decint | hexint | octalint
+
+decint ::= (1-9)(0-9)*
+hexint ::= (0x|0X)[0-9a-fA-F)+
+octalint ::= 0[0-7]*
+
+intsuffix ::= unsignedsuf (longsuf | longlongsuf)? | (longsuf | longlongsuf) unsignedsuf?
+
+unsignedsuf ::= (u|U)
+longsuf ::= (l|L)
+longlongsuf ::= (ll|LL)
+
+None of these contain a negative sign, because the parser will be in charge of deciding if a negative sign belongs with an integer or as subtraction.
