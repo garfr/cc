@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 struct src_file {
     const uint8_t *buf;
@@ -22,5 +23,8 @@ struct src_range {
 };
 
 void print_range(FILE *f, const struct src_range *rng);
+
+#define streq(s1, s2) (strcmp(s1, s2) == 0)
+#define strneq(s1, l1, s2, l2) (l1 == l2 ? strncmp(s1, s2, l1) == 0 : false)
 
 #endif

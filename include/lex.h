@@ -41,6 +41,9 @@ enum token_kind {
     TOKEN_VOID,
     TOKEN_VOLATILE,
     TOKEN_WHILE,
+    TOKEN_BOOL,
+    TOKEN_COMPLEX,
+    TOKEN_IMAGINARY,
 
     /* punctuation */
     TOKEN_LBRACK,
@@ -103,6 +106,13 @@ enum token_kind {
     TOKEN_EOF,
 };
 
+enum intlit_type {
+    INTLIT_I,
+    INTLIT_L,
+    INTLIT_LL,
+    INTLIT_OV,
+};
+
 struct token {
     enum token_kind t;
     struct src_range pos;
@@ -110,7 +120,14 @@ struct token {
     union {
 	struct src_range id;
 	struct src_range string;
-	struct src_range num;
+	struct {
+	    uint8_t sign;
+	    enum intlit_type t;
+	    union {
+		int64_t s;
+		uint64_t u;
+	    } v;
+	} num;
     } v;
 };
 

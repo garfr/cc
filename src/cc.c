@@ -56,6 +56,5 @@ int main(int argc, const char **argv) {
 
     lex_free(lex);
 
-    printf("%s", comp_unit.buf);
     return EXIT_SUCCESS;
 }

@@ -40,6 +40,64 @@ skip_whitespace(struct lexer *l) {
     RESET(l);
 }
 
+enum token_kind keyword_map_start = TOKEN_AUTO;
+enum token_kind keyword_map_end = TOKEN_WHILE;
+
+const char *keyword_map[] = {
+    [TOKEN_AUTO] = "auto",
+    [TOKEN_BREAK] = "break",
+    [TOKEN_CASE] = "case",
+    [TOKEN_CHAR] = "char",
+    [TOKEN_CONST] = "const",
+    [TOKEN_CONTINUE] = "continue",
+    [TOKEN_DEFAULT] = "default",
+    [TOKEN_DO] = "do",
+    [TOKEN_DOUBLE] = "double",
+    [TOKEN_ELSE] = "else",
+    [TOKEN_ENUM] = "enum",
+    [TOKEN_EXTERN] = "extern",
+    [TOKEN_FLOAT] = "float",
+    [TOKEN_FOR] = "for",
+    [TOKEN_GOTO] = "goto",
+    [TOKEN_IF] = "if",
+    [TOKEN_INLINE] = "inline",
+    [TOKEN_INT] = "int",
+    [TOKEN_LONG] = "long",
+    [TOKEN_REGISTER] = "register",
+    [TOKEN_RESTRICT] = "restrict",
+    [TOKEN_RETURN] = "return",
+    [TOKEN_SHORT] = "short",
+    [TOKEN_SIGNED] = "signed",
+    [TOKEN_SIZEOF] = "sizeof",
+    [TOKEN_STATIC] = "static",
+    [TOKEN_STRUCT] = "struct",
+    [TOKEN_SWITCH] = "switch",
+    [TOKEN_TYPEDEF] = "typedef",
+    [TOKEN_UNION] = "union",
+    [TOKEN_UNSIGNED] = "unsigned",
+    [TOKEN_VOID] = "void",
+    [TOKEN_VOLATILE] = "volatile",
+    [TOKEN_WHILE] = "while",
+    [TOKEN_BOOL] = "_Bool",
+    [TOKEN_COMPLEX] = "_Complex",
+    [TOKEN_IMAGINARY] = "_Imaginary",
+    
+};
+
+/* returns TOKEN_ID if not a keyword, otherwise the token variant */
+static enum token_kind
+find_keywords(struct lexer *l) {
+    for (size_t i = keyword_map_start;
+	 i < keyword_map_end;
+	 i++) {
+	if (strneq(keyword_map[i], strlen(keyword_map[i]),
+		   (const char *)l->file->buf + l->s, l->e - l->s)) {
+	    return (enum token_kind) i;
+	}
+    }
+    return TOKEN_ID;
+}
+
 static struct src_range
 make_range(struct lexer *l) {
     struct src_range rng;
@@ -71,9 +129,202 @@ lex_id(struct lexer *l) {
     while (!IS_EOF(l) && (isalpha(c = PEEKC(l)) || isdigit(c) || c == '_')) {
 	SKIPC(l);
     }
-    struct token ret = make_tok_inplace(l, TOKEN_ID);
-    ret.v.id = make_range(l);
+    struct token ret = make_tok_inplace(l, find_keywords(l));
+    if (ret.t == TOKEN_ID)
+	ret.v.id = make_range(l);
     return ret;
+}
+
+#define IS_DECINT(c) (c <= '9' && c >= '0')
+#define IS_HEXINT(c) ((c <= 'f' && c >= 'a') \
+		      || (c <= 'F' && c >= 'A') \
+		      || IS_DECINT(c))
+#define IS_OCTINT(c) (c <= '7' && c >= '0')
+
+static void
+lex_int_suffix(struct lexer *l, uint8_t *sign, enum intlit_type *t) {
+    int c;
+    if (IS_EOF(l)) {
+	*sign = true;
+	*t = INTLIT_I;
+    }
+    else if ((c = PEEKC(l)) == 'u' || c == 'U') {
+	*sign = false;
+	SKIPC(l);
+	if ((c = PEEKC(l)) == 'l' || c == 'L') {
+	    *t = INTLIT_L;
+	    SKIPC(l);	   
+	    if ((c = PEEKC(l)) == 'l' || c == 'L') {
+		SKIPC(l);
+		*t = INTLIT_LL;
+	    }
+	}
+    }
+}
+
+static int
+char_to_hex(char c) {
+    if (c <= '9' && c >= '0')
+	return c - '0';
+    if (c <= 'f' && c >= 'a')
+	return (c - 'a') + 10;
+    if (c <= 'F' && c >= 'A') {
+	return (c - 'A') + 10;
+    }
+    return 0;
+}
+
+static struct token
+lex_octint(struct lexer *l) {
+    size_t s = l->e;
+    while (!IS_EOF(l) && IS_OCTINT(PEEKC(l))) {
+	SKIPC(l);
+    }
+    uint8_t sign;
+    enum intlit_type t;
+    size_t e = l->e;
+
+    lex_int_suffix(l, &sign, &t);
+
+    struct token tok = make_tok_inplace(l, TOKEN_INTLIT);
+    tok.v.num.sign = sign;
+    tok.v.num.t = t;
+
+    if (sign) {
+	int64_t total = 0;
+	for (size_t i = s; i < e; i++) {
+	    total = total * 8 + l->file->buf[i] - '0';
+	}
+	tok.v.num.v.s = total;
+    }
+    else {
+	uint64_t total = 0;
+	for (size_t i = s; i < e; i++) {
+	    total = total * 8 + l->file->buf[i] - '0';
+	}
+	tok.v.num.v.u = total;
+    }
+    return tok;
+}
+
+static struct token
+lex_hexint(struct lexer *l) {
+    SKIPC(l);
+    size_t s = l->e;
+    while (!IS_EOF(l) && IS_HEXINT(PEEKC(l))) {
+	SKIPC(l);
+    }
+    uint8_t sign;
+    enum intlit_type t;
+    size_t e = l->e;
+
+    lex_int_suffix(l, &sign, &t);
+
+    struct token tok = make_tok_inplace(l, TOKEN_INTLIT);
+    tok.v.num.sign = sign;
+    tok.v.num.t = t;
+
+    if (sign) {
+	int64_t total = 0;
+	for (size_t i = s; i < e; i++) {
+	    total = total * 16 + char_to_hex(l->file->buf[i]);
+	}
+	tok.v.num.v.s = total;
+    }
+    else {
+	uint64_t total = 0;
+	for (size_t i = s; i < e; i++) {
+	    total = total * 16 + char_to_hex(l->file->buf[i]);
+	}
+	tok.v.num.v.u = total;
+    }
+    return tok;
+}
+
+static struct token
+lex_decint(struct lexer *l) {
+    SKIPC(l); // skip first 1-9
+    while (!IS_EOF(l) && IS_DECINT(PEEKC(l))) {
+	SKIPC(l);
+    }
+    size_t e = l->e;
+    uint8_t sign;
+    enum intlit_type t;
+    lex_int_suffix(l, &sign, &t);
+    
+    struct token tok = make_tok_inplace(l, TOKEN_INTLIT);
+    tok.v.num.sign = sign;
+    tok.v.num.t = t;
+
+    if (sign) {
+	int64_t total = 0;
+	for (size_t i = l->s; i < e; i++) {
+	    total = total * 10 + (l->file->buf[i] - '0');
+	}
+	tok.v.num.v.s = total;
+    }
+    else {
+	uint64_t total = 0;
+	for (size_t i = l->s; i < e; i ++) {
+	    total = total * 10 + (l->file->buf[i] - '0');
+	}
+	tok.v.num.v.u = total;
+    }
+    return tok;
+}
+
+static int
+read_char_escape(struct lexer *l) {
+    int c = NEXTC(l);
+    switch (c) {
+    case '\'':
+    case '\"':
+    case '\\':
+    case '?':       
+	return c;
+    case '\n':
+	return '\n';
+    case '\a':
+	return '\a'; 
+   case 'b':
+	return '\b';
+    case 't':
+	return '\t';
+    case 'n':
+	return '\n';
+    case 'v':
+	return '\v';
+    case 'f':
+	return '\f';
+    case 'r':
+	return '\r';
+	 
+    }
+    printf("invalid escape char '%c'\n", c);
+    exit(EXIT_FAILURE);
+}
+
+static struct token
+lex_charlit(struct lexer *l) {
+    int64_t c_val;
+    SKIPC(l); // skip '
+    int c = NEXTC(l);
+    if (c == '\\') 
+	c_val = read_char_escape(l);
+    else
+	c_val = c;
+
+    if (PEEKC(l) != '\'') {
+	printf("expected \' after char literal\n");
+	exit(EXIT_FAILURE);
+    }
+    
+    struct token tok = make_tok(l, TOKEN_INTLIT);
+    tok.v.num.sign = true;
+    tok.v.num.t = INTLIT_I;
+
+    tok.v.num.v.s = c_val;
+    return tok;
 }
 
 static int
@@ -101,10 +352,25 @@ get_tok(struct lexer *l) {
 	return make_tok(l, TOKEN_EOF);
     }
 
+    if (c == '\'')
+	return lex_charlit(l);
+    
     if (isalpha(c) || c == '_') {
 	return lex_id(l);
     }
 
+    if (c == '0') {
+	SKIPC(l);
+	if (!IS_EOF(l) && ((ec = PEEKC(l)) == 'x' || ec == 'X')) {
+	    return lex_hexint(l);
+	}
+	return lex_octint(l);
+    }
+
+    if (IS_DECINT(c)) {
+	return lex_decint(l);
+    }
+    
     switch (c) {
     case '[':
 	return make_tok(l, TOKEN_LBRACK);
@@ -339,6 +605,13 @@ void lex_print(FILE *f, struct token tok) {
     fprintf(f, "'");
     print_range(f, &tok.pos);
     fprintf(f, "' : %s", tok_kind_name[tok.t]);
+
+    if (tok.t == TOKEN_INTLIT && tok.v.num.sign) {
+	fprintf(f, " : %ld", tok.v.num.v.s);
+    }
+    else if (tok.t == TOKEN_INTLIT && !tok.v.num.sign) {
+	fprintf(f, " : %lu", tok.v.num.v.u);
+    }
 
     if (tok.t == TOKEN_ID) {
 	fprintf(f, " : (%zd, %zd) '", tok.v.id.s1, tok.v.id.s2);

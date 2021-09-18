@@ -27,9 +27,9 @@ sizeof, static, struct, switch, typedef, union, unsigned, void, volatile, while,
 _Bool, _Complex, _Imaginary
 
 Tokens in C99 are "reserved" meaning that no identifier can use these tokens as names.
-Because of this, each keyword is given its own keyword.
+Because of this, each keyword is given its own token.
 
-There are also several elements of punctuation which are also
+There are also several elements of punctuation which are:
 
 [ ] ( ) { } . -> ++ -- & * + - ~ ! / % << >> < > <= >= == != ^ | && || ? : ; ...
 = *= /= %= += -= <<= >>= &= ^= |= , # ##
@@ -54,3 +54,6 @@ longsuf ::= (l|L)
 longlongsuf ::= (ll|LL)
 
 None of these contain a negative sign, because the parser will be in charge of deciding if a negative sign belongs with an integer or as subtraction.
+
+* TODO
+  - Check for overflow in integer tokenization
