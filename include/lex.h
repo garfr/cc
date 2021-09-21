@@ -113,21 +113,27 @@ enum intlit_type {
     INTLIT_OV,
 };
 
+struct tok_num {    
+    enum intlit_type t;
+    uint8_t sign;
+    
+    union {
+	int64_t s;
+	uint64_t u;
+    } v;
+};
+
 struct token {
     enum token_kind t;
     struct src_range pos;
 
     union {
 	struct src_range id;
-	struct src_range string;
 	struct {
-	    uint8_t sign;
-	    enum intlit_type t;
-	    union {
-		int64_t s;
-		uint64_t u;
-	    } v;
-	} num;
+	    const char *buf;
+	    size_t len;
+	} str;
+	struct tok_num num;
     } v;
 };
 
@@ -141,5 +147,7 @@ struct token lex_peek(struct lexer *l);
 void lex_skip(struct lexer *l);
 
 void lex_print(FILE *f, struct token tok);
+
+struct src_file* lex_get_file(struct lexer *l);
 
 #endif

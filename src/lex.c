@@ -32,12 +32,35 @@ lex_free(struct lexer *l) {
     free(l);
 }
 
+struct src_file *
+lex_get_file(struct lexer *l) {
+    return l->file;
+}
+
 static void
 skip_whitespace(struct lexer *l) {
-    while (!IS_EOF(l) && isspace(PEEKC(l))) {
-	SKIPC(l);
+    int c;
+    while (!IS_EOF(l)) {
+	c = PEEKC(l);
+	if (c == '\\') {
+	    SKIPC(l);
+	    if (PEEKC(l) == '\r') {
+		if (SKIPC(l), PEEKC(l) == '\n') {
+		    SKIPC(l);
+		}
+	    }
+	    else {
+		RESET(l);
+		return;
+	    }
+	}
+	else if (isspace(c))
+	    SKIPC(l);
+	else {
+	    RESET(l);
+	    return;
+	}
     }
-    RESET(l);
 }
 
 enum token_kind keyword_map_start = TOKEN_AUTO;
@@ -159,6 +182,8 @@ lex_int_suffix(struct lexer *l, uint8_t *sign, enum intlit_type *t) {
 		*t = INTLIT_LL;
 	    }
 	}
+    } else {
+	*t = INTLIT_I;
     }
 }
 
@@ -274,17 +299,18 @@ lex_decint(struct lexer *l) {
 }
 
 static int
-read_char_escape(struct lexer *l) {
-    int c = NEXTC(l);
+read_char_escape(size_t *move, const char *p) {
+    (*move)++;
+    int c = *p;
     switch (c) {
     case '\'':
     case '\"':
     case '\\':
-    case '?':       
+    case '?':
 	return c;
-    case '\n':
-	return '\n';
-    case '\a':
+    case '0':
+	return 0;
+    case 'a':
 	return '\a'; 
    case 'b':
 	return '\b';
@@ -310,7 +336,7 @@ lex_charlit(struct lexer *l) {
     SKIPC(l); // skip '
     int c = NEXTC(l);
     if (c == '\\') 
-	c_val = read_char_escape(l);
+	c_val = read_char_escape(&l->e,(const char *) l->file->buf + l->e);
     else
 	c_val = c;
 
@@ -324,6 +350,42 @@ lex_charlit(struct lexer *l) {
     tok.v.num.t = INTLIT_I;
 
     tok.v.num.v.s = c_val;
+    return tok;
+}
+
+static void
+find_strlit_end(struct lexer *l) {
+    int c;
+    for (; (c = NEXTC(l))  != '"';) {
+	if (c == '\\')
+	    SKIPC(l);
+    }
+}
+
+static struct token
+lex_str(struct lexer *l) {
+    SKIPC(l); // skip "
+    const char *start = (const char *)l->file->buf + l->e;
+    find_strlit_end(l);
+    const char *end = (const char *) l->file->buf + l->e - 1;
+    
+
+    char *buf = calloc(end - start, sizeof(char));
+    size_t pos = 0;
+
+    for (; start < end;) {
+	if (*start == '\\') {
+	    size_t move = 1;
+	    buf[pos++] = read_char_escape(&move, start + 1);
+	    start += move;
+	}
+	else
+	    buf[pos++] = *start++;
+    }
+    
+    struct token tok = make_tok_inplace(l, TOKEN_STR);
+    tok.v.str.buf = buf;
+    tok.v.str.len = pos;
     return tok;
 }
 
@@ -354,6 +416,9 @@ get_tok(struct lexer *l) {
 
     if (c == '\'')
 	return lex_charlit(l);
+
+    if (c == '\"')
+	return lex_str(l);
     
     if (isalpha(c) || c == '_') {
 	return lex_id(l);
@@ -617,6 +682,9 @@ void lex_print(FILE *f, struct token tok) {
 	fprintf(f, " : (%zd, %zd) '", tok.v.id.s1, tok.v.id.s2);
 	print_range(f, &tok.v.id);
 	fprintf(f, "'");
+    }
+    if (tok.t == TOKEN_STR) {
+	fprintf(f, " : \"%.*s\"", (int) tok.v.str.len, tok.v.str.buf);
     }
     fprintf(f, "\n");
 }

@@ -5,6 +5,8 @@ src = [
     'src/arg.c',
     'src/lex.c',
     'src/helpers.c',
+    'src/ast.c',
+    'src/parse.c',
 ]
 
 inc = include_directories('include')
