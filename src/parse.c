@@ -70,6 +70,8 @@ parse_primary(struct parser *p) {
     return expr;
 }
 
+static struct expr *parse_assign(struct parser *p);
+
 static struct expr *
 parse_postfix(struct parser *p) {
     struct expr *ret = parse_primary(p);
@@ -129,7 +131,7 @@ parse_postfix(struct parser *p) {
 	    vec_init(&args);
 	    struct token last_paren;
 	    while ((last_paren = PEEKT(p)).t != TOKEN_RPAREN) {
-		struct expr *val = parse_expr(p);
+		struct expr *val = parse_assign(p);
 		VEC_PUSH(&args, &val, struct expr *);
 		if (PEEKT(p).t == TOKEN_COMMA) {
 		    SKIPT(p);
@@ -544,7 +546,6 @@ parse_stmt(struct parser *p) {
 	ret->v._if.cond = cond;
 	break;
     }
-	
     default: {
 	struct expr *val = parse_expr(p);
 	struct token last = NEXTT(p);
