@@ -50,11 +50,17 @@ int main(int argc, const char **argv) {
 
     struct lexer *lex = lex_new(&comp_unit);
 
+    /* struct token tok; */
+    /* while ((tok = lex_next(lex)).t != TOKEN_EOF) { */
+    /* 	lex_print(stdout, tok); */
+    /* } */
+    
     struct trans_unit tunit = parse_translation_unit(lex);
 
-    print_expr(stdout, tunit.expr);
+    print_stmt(stdout, tunit.stmt);
     
     lex_free(lex);
 
     return EXIT_SUCCESS;
 }
+

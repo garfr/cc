@@ -15,6 +15,25 @@ Some parts of the C99 spec may be omitted, but the compiler is written in pure C
    
 ** Data Structures
 
+** Syntax Analysis
+
+There are many techniques and algorithms for syntax analysis.
+This project has been designed to have each component written by hand, without the use of
+lexer or parser generators.  Some techniques take kindly to hand writing better, and I have
+chosen to use top down, recursive descent parsing.  I will build an abstract syntax tree without
+any semantic information through this process, represented with simple C unions and enums.
+
+*** Syntax of C
+
+For conciseness sake, this does not account for precedence. Consult a table for that info.
+expr = binop
+
+binop_op = + | - | * | / | %
+
+binop = expr binop_op expr
+
+primary_expr = num | id | str | ( expr )
+
 ** Lexical Analysis
 
 *** Lexical Syntax of C
@@ -57,3 +76,23 @@ None of these contain a negative sign, because the parser will be in charge of d
 
 * TODO
   - Check for overflow in integer tokenization
+
+September 23rd, 2021
+
+Today I implemented binary operations in the abstract syntax tree. I defined them with
+a nother member of the union.  THen I implemeneted parsing for the binary ops, complete with operator precedence.
+
+September 28th, 2021
+
+I continued the implementation of expression parsing.  Almost all C99 expression types can be parsed.
+
+October 5th, 2021.
+
+I have been out for the weekend and I missed Friday. I am continuing parsing by working on statements.
+C has extremely weird and detailed rules about statements and declarations, and I have to start dealing with
+non-context free concepts such as symbol tables and typing.  The compiler still lacks a few important concepts,
+primarily constant expressions and declarations, but these are getting filled in.  As of the end of today, we
+can now parse return statements, expression statements, if and else if statements and statements containing no
+content.  There are still for, while, and do loops, switch statements and of course cases, defaults, and labels.
+Baby steps.
+
