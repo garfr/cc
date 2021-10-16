@@ -5,6 +5,7 @@
 #define NEXTT(p) (lex_next(p->lex))
 #define SKIPT(p) (lex_skip(p->lex))
 #define PEEKT(p) (lex_peek(p->lex))
+#define PEEKT2(p) (lex_peek2(p->lex))
 
 struct parser {
         struct lexer *lex;
@@ -80,6 +81,7 @@ static struct expr *parse_primary(struct parser *p) {
                 SKIPT(p);
                 break;
         default:
+		lex_print(stdout, tok);
                 printf("expected expression\n");
                 exit(EXIT_FAILURE);
         }
@@ -691,6 +693,28 @@ static struct stmt *parse_stmt(struct parser *p) {
         struct token t = PEEKT(p);
         struct stmt *ret;
         switch (t.t) {
+	case TOKEN_ID: {
+		if (PEEKT2(p).t == TOKEN_COLON) {
+			struct token name = NEXTT(p);
+			SKIPT(p);
+			struct stmt *stmt = parse_stmt(p);
+			ret = build_stmt(STMT_LABEL, combine_ranges(name.pos, stmt->pos));
+			ret->v.label.stmt = stmt;
+			ret->v.label.name = add_var(p->labels, name.v.id);
+			ret->v.label.name->label_loc = ret;
+		} else {
+			goto stmt_expr;
+		}
+		break;
+	}
+	case TOKEN_GOTO: {
+		SKIPT(p);
+		struct token id = skip(p, TOKEN_ID, "label name");
+		struct src_range last = skipr(p, TOKEN_SEMICOLON, ";");
+		ret = build_stmt(STMT_GOTO, combine_ranges(t.pos, last));
+		ret->v._goto.name = id.v.id;
+		break;
+	}
         case TOKEN_SEMICOLON:
                 ret = build_stmt(STMT_NULL, t.pos);
                 break;
@@ -725,7 +749,7 @@ static struct stmt *parse_stmt(struct parser *p) {
         }
         case TOKEN_LCURLY: {
 		ret = parse_block(p);
-
+		break;
         }
 	case TOKEN_DEFAULT: {
 		SKIPT(p);
@@ -736,7 +760,8 @@ static struct stmt *parse_stmt(struct parser *p) {
 		break;
 		
 	}
-        default: {
+        default: stmt_expr: {
+		
                 struct expr *val = parse_expr(p);
                 struct token last = NEXTT(p);
                 if (last.t != TOKEN_SEMICOLON) {
@@ -751,6 +776,26 @@ static struct stmt *parse_stmt(struct parser *p) {
         return ret;
 }
 
+void link_goto(struct stmt *stmt, struct stmt *_parent, void *_tab) {
+	(void) _parent;
+
+	if (stmt->t == STMT_GOTO) {
+		struct symtab *tab = (struct symtab *) _tab;
+	
+		stmt->v._goto.ref = find_var(tab, stmt->v._goto.name);
+		if (stmt->v._goto.ref == NULL) {
+			printf("cannot find goto label '");
+			print_range(stdout, &stmt->v._goto.name);
+			printf("'\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
+void correct_goto_labels(struct fun *fun) {
+	visit_stmts(fun, link_goto, (void*)&fun->labels);
+}
+	      
 struct fun *parse_fun(struct parser *p) {
 	struct type *ret_type = parse_type_full(p);
 	struct token namet = skip(p, TOKEN_ID, "function name");
@@ -768,11 +813,14 @@ struct fun *parse_fun(struct parser *p) {
 	
 	struct stmt *body = parse_block(p);
 
+
 	struct fun *ret = calloc(1, sizeof(struct fun));
 	ret->body = body;
 	ret->name = ref;
 	ret->labels = labels;
-	
+
+	correct_goto_labels(ret);
+
 	return ret;
 }
 

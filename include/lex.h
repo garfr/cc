@@ -144,6 +144,7 @@ void lex_free(struct lexer *l);
 
 struct token lex_next(struct lexer *l);
 struct token lex_peek(struct lexer *l);
+struct token lex_peek2(struct lexer *l);
 void lex_skip(struct lexer *l);
 
 void lex_print(FILE *f, struct token tok);

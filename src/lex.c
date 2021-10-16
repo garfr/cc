@@ -12,8 +12,8 @@
 struct lexer {
         struct src_file *file;
         size_t s, e;
-        bool peekf;
-        struct token peek;
+        bool peekf, peekf2;
+        struct token peek, peek2;
 };
 
 struct lexer *lex_new(struct src_file *file) {
@@ -518,11 +518,17 @@ static struct token get_tok(struct lexer *l) {
 }
 
 struct token lex_next(struct lexer *l) {
-        if (l->peekf) {
-                l->peekf = false;
-                return l->peek;
-        }
-        return get_tok(l);
+	if (!l->peekf && !l->peekf2) {
+		return get_tok(l);
+	}
+	if (l->peekf && !l->peekf2) {
+		l->peekf = false;
+		return l->peek;
+	}
+	struct token ret = l->peek;
+	l->peek = l->peek2;
+	l->peekf2 = false;
+	return ret;
 }
 
 struct token lex_peek(struct lexer *l) {
@@ -532,12 +538,22 @@ struct token lex_peek(struct lexer *l) {
         return l->peek = get_tok(l);
 }
 
+struct token lex_peek2(struct lexer *l) {
+	if (l->peekf2) {
+		return l->peek2;
+	} else if (l->peekf) {
+		l->peekf2 = true;
+		return l->peek2 = get_tok(l);
+	} else {
+		l->peekf = true;
+		l->peek = get_tok(l);
+		l->peekf2 = true;
+		return l->peek2 = get_tok(l);
+	}
+}
+
 void lex_skip(struct lexer *l) {
-        if (l->peekf) {
-                l->peekf = false;
-                return;
-        }
-        get_tok(l);
+	lex_next(l);
 }
 
 const char *tok_kind_name[] = {

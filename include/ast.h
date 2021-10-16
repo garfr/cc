@@ -12,6 +12,7 @@ struct type;
 struct var_ref {
         struct src_range name;
 	struct type *type;
+	struct stmt *label_loc;
 	struct var_ref *next;
 };
 
@@ -222,6 +223,7 @@ enum stmt_kind {
         STMT_DO,
         STMT_BLOCK,
         STMT_NULL, /* semicolon with no other tokens */
+	STMT_GOTO,
 };
 
 struct stmt {
@@ -232,9 +234,13 @@ struct stmt {
                 struct expr *ret;
                 struct expr *expr;
 		struct {
-			struct src_range name;
+			struct var_ref *name;
 			struct stmt *stmt;
 		} label;
+		struct {
+			struct var_ref *ref;
+			struct src_range name;
+		} _goto;
 		struct {
 			struct expr *val;
 			struct stmt *stmt;
@@ -300,5 +306,9 @@ struct type *clone_type(struct type *type);
 void init_symtab(struct symtab *tab, struct symtab *up);
 struct var_ref *add_var(struct symtab *tab, struct src_range name);
 struct var_ref *find_var(struct symtab *tab, struct src_range name);
+
+typedef void (*stmt_visit)(struct stmt *, struct stmt *, void *);
+
+void visit_stmts(struct fun *fun, stmt_visit callback, void *ud);
 
 #endif

@@ -268,6 +268,7 @@ static const char *stmt_kind_str[] = {
     [STMT_EXPR] = "STMT_EXPR", [STMT_RETURN] = "STMT_RETURN",
     [STMT_NULL] = "STMT_NULL", [STMT_DEFAULT] = "STMT_DEFAULT",
     [STMT_LABEL] = "STMT_LABEL", [STMT_CASE] = "STMT_CASE",
+    [STMT_GOTO] = "STMT_GOTO",
 };
 
 static const char *type_kind_str[] = {
@@ -310,7 +311,7 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
 	case STMT_LABEL:
 		fprintf(file, "\n");
 		print_indents(file, i + 1);
-		print_range(file, &stmt->v.label.name);
+		print_range(file, &stmt->v.label.name->name);
 		fprintf(file, "\n");
 		display_stmt(file, stmt->v.label.stmt, i + 1);
 		break;
@@ -370,6 +371,13 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
                 fprintf(file, "\n");
                 display_expr(file, stmt->v.ret, i + 1);
                 break;
+	case STMT_GOTO:
+		if (stmt->v._goto.ref) {
+			print_range(file, &stmt->v._goto.ref->name);
+		} else {
+			fprintf(file, "<label not filled in>");
+		}
+		break;
         case STMT_BLOCK: {
                 for (size_t idx = 0;
                      idx < VEC_SIZE(stmt->v.block.items, struct stmt*); idx++) {
@@ -426,4 +434,54 @@ struct type *build_ptr(struct type *type) {
 	struct type *ptr = build_type(TYPE_PTR);
 	ptr->v.ptr = type;
 	return ptr;
+}
+
+static void recurse_visit_stmt(struct stmt *stmt,
+			       struct stmt *parent,
+			       stmt_visit callback, void *ud) {
+	callback(stmt, parent, ud);
+	switch(stmt->t) {
+	case STMT_LABEL:
+		recurse_visit_stmt(stmt->v.label.stmt, stmt, callback, ud);
+		break;
+	case STMT_CASE:
+		recurse_visit_stmt(stmt->v._case.stmt, stmt, callback, ud);
+		break;
+	case STMT_DEFAULT:
+		recurse_visit_stmt(stmt->v._default, stmt, callback, ud);
+		break;
+        case STMT_IF:
+		recurse_visit_stmt(stmt->v._if.t, stmt, callback, ud);
+		if (stmt->v._if.f)
+			recurse_visit_stmt(stmt->v._if.f, stmt, callback, ud);
+		break;
+        case STMT_SWITCH:
+		recurse_visit_stmt(stmt->v._switch.body, stmt, callback, ud);
+		break;
+        case STMT_FOR:
+		recurse_visit_stmt(stmt->v._for.body, stmt, callback, ud);
+		break;
+        case STMT_WHILE:
+		recurse_visit_stmt(stmt->v._while.body, stmt, callback, ud);
+		break;
+        case STMT_DO:
+		recurse_visit_stmt(stmt->v._do.body, stmt, callback, ud);
+		break;
+        case STMT_BLOCK: {
+		for (size_t i = 0; i < VEC_SIZE(stmt->v.block.items, struct stmt *); i++) {
+			struct stmt *tmp = *VEC_INDEX(&stmt->v.block.items, i, struct stmt *);
+			recurse_visit_stmt(tmp, stmt, callback, ud);
+		}
+		break;
+	}
+        case STMT_NULL:
+	case STMT_GOTO:
+	case STMT_EXPR:
+	case STMT_RETURN:
+		break;
+	}
+}
+
+void visit_stmts(struct fun *fun, stmt_visit callback, void *ud) {
+	recurse_visit_stmt(fun->body, NULL, callback, ud);
 }
