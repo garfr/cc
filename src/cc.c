@@ -55,7 +55,7 @@ int main(int argc, const char **argv) {
 
         struct trans_unit tunit = parse_translation_unit(lex);
 
-        print_stmt(stdout, tunit.stmt);
+        print_fun(stdout, tunit.fun);
 
         lex_free(lex);
 

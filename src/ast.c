@@ -401,6 +401,13 @@ void print_stmt(FILE *file, struct stmt *stmt) {
         fprintf(file, "\n");
 }
 
+void print_fun(FILE *file, struct fun *fun) {
+	fprintf(file, "FUN: ");
+	print_range(file, &fun->name->name);
+	fprintf(file, "\n");
+	display_stmt(file, fun->body, 1);
+}
+
 void print_trans_unit(FILE *file, struct trans_unit tunit);
 
 struct type *clone_type(struct type *type) {

@@ -9,6 +9,7 @@
 struct parser {
         struct lexer *lex;
 	struct symtab *scope;
+	struct symtab *labels;
 };
 
 static enum num_type intlit_to_num[] = {
@@ -594,6 +595,20 @@ static struct type *parse_type(struct parser *p) {
         return ret;
 }
 
+struct type *pointer_wrap(struct parser *p, struct type *t) {
+	while (PEEKT(p).t == TOKEN_STAR) {
+		SKIPT(p);
+		t = build_ptr(t);
+	}
+	
+	return t;
+}
+
+struct type *parse_type_full(struct parser *p) {
+	struct type* typ = parse_type(p);
+	return pointer_wrap(p, typ);
+}
+
 static void parse_decl(struct vec *stmts, struct parser *p) {
         struct type *base_type = parse_type(p);
 
@@ -644,6 +659,34 @@ static void parse_decl(struct vec *stmts, struct parser *p) {
 	SKIPT(p);
 }
 
+static struct stmt *parse_stmt(struct parser *p);
+
+struct stmt *parse_block(struct parser *p) {
+	struct stmt *ret;
+	struct token t = skip(p, TOKEN_LCURLY, "}");
+	
+	struct vec block;
+	vec_init(&block);
+	struct symtab new_scope;
+	init_symtab(&new_scope, p->scope);
+	p->scope = &new_scope;
+	while (PEEKT(p).t != TOKEN_RCURLY) {
+		if (is_type_next(p)) {
+			parse_decl(&block, p);
+		} else {
+			struct stmt *tmp = parse_stmt(p);
+			VEC_PUSH(&block, &tmp, struct stmt*);
+
+		}
+	}
+	struct token last = NEXTT(p);
+	ret = build_stmt(STMT_BLOCK, combine_ranges(t.pos, last.pos));
+	ret->v.block.items = block;
+	ret->v.block.vars = new_scope;
+	p->scope = p->scope->up;
+	return ret;
+}
+
 static struct stmt *parse_stmt(struct parser *p) {
         struct token t = PEEKT(p);
         struct stmt *ret;
@@ -681,27 +724,8 @@ static struct stmt *parse_stmt(struct parser *p) {
                 break;
         }
         case TOKEN_LCURLY: {
-                SKIPT(p);
-                struct vec block;
-                vec_init(&block);
-		struct symtab new_scope;
-		init_symtab(&new_scope, p->scope);
-		p->scope = &new_scope;
-                while (PEEKT(p).t != TOKEN_RCURLY) {
-                        if (is_type_next(p)) {
-				parse_decl(&block, p);
-                        } else {
-                                struct stmt *tmp = parse_stmt(p);
-				VEC_PUSH(&block, &tmp, struct stmt*);
+		ret = parse_block(p);
 
-                        }
-                }
-                struct token last = NEXTT(p);
-                ret = build_stmt(STMT_BLOCK, combine_ranges(t.pos, last.pos));
-                ret->v.block.items = block;
-		ret->v.block.vars = new_scope;
-		p->scope = p->scope->up;
-                break;
         }
 	case TOKEN_DEFAULT: {
 		SKIPT(p);
@@ -727,6 +751,31 @@ static struct stmt *parse_stmt(struct parser *p) {
         return ret;
 }
 
+struct fun *parse_fun(struct parser *p) {
+	struct type *ret_type = parse_type_full(p);
+	struct token namet = skip(p, TOKEN_ID, "function name");
+
+	struct type *type = build_type(TYPE_FUN);
+	type->v.fun.ret = ret_type;
+
+	struct var_ref *ref = add_var(p->scope, namet.v.id);
+	ref->type = type;
+
+	struct symtab labels;
+	init_symtab(&labels, NULL);
+
+	p->labels = &labels;
+	
+	struct stmt *body = parse_block(p);
+
+	struct fun *ret = calloc(1, sizeof(struct fun));
+	ret->body = body;
+	ret->name = ref;
+	ret->labels = labels;
+	
+	return ret;
+}
+
 struct trans_unit parse_translation_unit(struct lexer *lex) {
         struct parser p;
 	struct symtab global;
@@ -736,7 +785,7 @@ struct trans_unit parse_translation_unit(struct lexer *lex) {
 	p.scope = &global;
 	struct trans_unit tunit;
         tunit.file = lex_get_file(lex);
-        tunit.stmt = parse_stmt(&p);
+        tunit.fun = parse_fun(&p);
 
         return tunit;
 }

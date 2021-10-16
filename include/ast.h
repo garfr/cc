@@ -33,6 +33,7 @@ enum type_kind {
         TYPE_INT,
         TYPE_LONG,
         TYPE_PTR,
+	TYPE_FUN,
 };
 
 struct type {
@@ -41,7 +42,9 @@ struct type {
 
         union {
                 struct type *ptr;
-
+		struct {
+			struct type *ret;
+		} fun;
         } v;
 };
 
@@ -268,9 +271,15 @@ struct stmt {
         } v;
 };
 
+struct fun {
+	struct stmt *body; /* MUST be a STMT_BLOCK. */
+	struct symtab labels;
+	struct var_ref *name;
+};
+
 struct trans_unit {
         struct src_file *file;
-        struct stmt *stmt;
+	struct fun *fun;
 };
 
 /* allocates space for builtin types */
@@ -283,6 +292,7 @@ struct type *build_ptr(struct type *type);
 void print_expr(FILE *file, struct expr *expr);
 void print_stmt(FILE *file, struct stmt *stmt);
 void print_type(FILE *file, struct type *type);
+void print_fun(FILE *file, struct fun *fun);
 void print_trans_unit(FILE *file, struct trans_unit tunit);
 
 struct type *clone_type(struct type *type);
