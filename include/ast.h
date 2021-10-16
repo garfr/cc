@@ -277,10 +277,17 @@ struct stmt {
         } v;
 };
 
+struct param {
+	struct type *type;
+	struct var_ref *ref;
+	struct src_range name;
+};
+
 struct fun {
 	struct stmt *body; /* MUST be a STMT_BLOCK. */
 	struct symtab labels;
 	struct var_ref *name;
+	struct vec params; /* struct param */
 };
 
 struct trans_unit {

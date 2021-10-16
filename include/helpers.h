@@ -44,6 +44,6 @@ void *vec_index(struct vec *vec, size_t idx, size_t bytes);
 
 #define VEC_PUSH(vec, val, type) ((type *)(vec_push(vec, val, sizeof(type))))
 #define VEC_INDEX(vec, idx, type) ((type *)(vec_index(vec, idx, sizeof(type))))
-#define VEC_SIZE(vec, type) (vec.len / sizeof(type))
+#define VEC_SIZE(vec, type) ((vec).len / sizeof(type))
 
 #endif

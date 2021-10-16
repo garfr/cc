@@ -663,7 +663,7 @@ static void parse_decl(struct vec *stmts, struct parser *p) {
 
 static struct stmt *parse_stmt(struct parser *p);
 
-struct stmt *parse_block(struct parser *p) {
+struct stmt *parse_block(struct parser *p, struct vec *params) {
 	struct stmt *ret;
 	struct token t = skip(p, TOKEN_LCURLY, "}");
 	
@@ -671,6 +671,15 @@ struct stmt *parse_block(struct parser *p) {
 	vec_init(&block);
 	struct symtab new_scope;
 	init_symtab(&new_scope, p->scope);
+
+	if (params) {
+		for (size_t i = 0; i < VEC_SIZE(*params, struct param); i++) {
+			struct param *param = VEC_INDEX(params, i, struct param);
+			param->ref = add_var(&new_scope, param->name);
+			param->ref->type = param->type;
+		}
+	}
+	
 	p->scope = &new_scope;
 	while (PEEKT(p).t != TOKEN_RCURLY) {
 		if (is_type_next(p)) {
@@ -748,7 +757,7 @@ static struct stmt *parse_stmt(struct parser *p) {
                 break;
         }
         case TOKEN_LCURLY: {
-		ret = parse_block(p);
+		ret = parse_block(p, NULL);
 		break;
         }
 	case TOKEN_DEFAULT: {
@@ -799,7 +808,30 @@ void correct_goto_labels(struct fun *fun) {
 struct fun *parse_fun(struct parser *p) {
 	struct type *ret_type = parse_type_full(p);
 	struct token namet = skip(p, TOKEN_ID, "function name");
-
+	skip(p, TOKEN_LPAREN, "(");
+	struct vec params;
+	vec_init(&params);
+	
+	while (PEEKT(p).t != TOKEN_LPAREN) {
+		struct param param;
+		param.type = parse_type_full(p);
+		struct token tok = skip(p, TOKEN_ID, "param name");
+		param.name = tok.v.id;
+		VEC_PUSH(&params, &param, struct param);
+		struct token t = NEXTT(p);
+		if (t.t == TOKEN_RPAREN) {
+			break;
+		}
+		else if (t.t == TOKEN_COMMA) {
+			continue;
+		}
+		else {
+			lex_print(stdout, t);
+			printf("expected ')' or ',' after parameter declaration");
+			exit(EXIT_FAILURE);
+		}
+	}
+	
 	struct type *type = build_type(TYPE_FUN);
 	type->v.fun.ret = ret_type;
 
@@ -811,14 +843,15 @@ struct fun *parse_fun(struct parser *p) {
 
 	p->labels = &labels;
 	
-	struct stmt *body = parse_block(p);
+	struct stmt *body = parse_block(p, &params);
 
 
 	struct fun *ret = calloc(1, sizeof(struct fun));
 	ret->body = body;
 	ret->name = ref;
 	ret->labels = labels;
-
+	ret->params = params;
+	
 	correct_goto_labels(ret);
 
 	return ret;
