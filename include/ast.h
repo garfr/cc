@@ -294,7 +294,7 @@ struct fun {
 
 struct trans_unit {
         struct src_file *file;
-	struct fun *fun;
+	struct vec funs; /* struct fun * */
 };
 
 /* allocates space for builtin types */

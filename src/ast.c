@@ -422,7 +422,13 @@ void print_fun(FILE *file, struct fun *fun) {
 	display_stmt(file, fun->body, 1);
 }
 
-void print_trans_unit(FILE *file, struct trans_unit tunit);
+void print_trans_unit(FILE *file, struct trans_unit tunit) {
+	for (size_t i = 0; i < VEC_SIZE(tunit.funs, struct fun *); i++) {
+		struct fun *fun = *VEC_INDEX(&tunit.funs, i, struct fun *);
+		print_fun(file, fun);
+		fprintf(file, "\n");
+	}
+}
 
 struct type *clone_type(struct type *type) {
 	struct type *new = calloc(1, sizeof(struct type));

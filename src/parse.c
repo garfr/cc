@@ -2,10 +2,10 @@
 
 #include "parse.h"
 
-#define NEXTT(p) (lex_next(p->lex))
-#define SKIPT(p) (lex_skip(p->lex))
-#define PEEKT(p) (lex_peek(p->lex))
-#define PEEKT2(p) (lex_peek2(p->lex))
+#define NEXTT(p) (lex_next((p)->lex))
+#define SKIPT(p) (lex_skip((p)->lex))
+#define PEEKT(p) (lex_peek((p)->lex))
+#define PEEKT2(p) (lex_peek2((p)->lex))
 
 struct parser {
         struct lexer *lex;
@@ -931,7 +931,12 @@ struct trans_unit parse_translation_unit(struct lexer *lex) {
 	p.scope = &global;
 	struct trans_unit tunit;
         tunit.file = lex_get_file(lex);
-        tunit.fun = parse_fun(&p);
+	vec_init(&tunit.funs);
+
+	while (PEEKT(&p).t != TOKEN_EOF) {
+		struct fun *fun = parse_fun(&p);
+		VEC_PUSH(&tunit.funs, &fun, struct fun *);
+	}
 
         return tunit;
 }
