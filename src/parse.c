@@ -611,6 +611,8 @@ struct type *parse_type_full(struct parser *p) {
 	return pointer_wrap(p, typ);
 }
 
+static struct vec parse_params(struct parser *p);
+
 static void parse_decl(struct vec *stmts, struct parser *p) {
         struct type *base_type = parse_type(p);
 
@@ -632,7 +634,8 @@ static void parse_decl(struct vec *stmts, struct parser *p) {
 		ref->type = typ;
 
 		t = PEEKT(p);
-		if (t.t == TOKEN_ASSN) {
+		switch (t.t) {
+		case TOKEN_ASSN: {
 			SKIPT(p);
 
 			struct expr *init = parse_assign(p);	
@@ -648,6 +651,24 @@ static void parse_decl(struct vec *stmts, struct parser *p) {
 			new_stmt->v.expr = real_expr;
 			VEC_PUSH(stmts, &new_stmt, struct stmt*);
 			t = PEEKT(p);
+			break;
+		}
+		case TOKEN_LPAREN: {
+			struct vec params = parse_params(p);
+			struct vec param_types;
+			vec_init(&param_types);
+			for (size_t i = 0; i < VEC_SIZE(params, struct param); i++) {
+				struct param *param = VEC_INDEX(&params, i, struct param);
+				VEC_PUSH(&param_types, &param->type, struct type *);
+			}
+			struct type *full_type = build_type(TYPE_FUN);
+			full_type->v.fun.ret = typ;
+			full_type->v.fun.params = param_types;
+			ref->type = full_type;
+			break;
+		}
+		default:
+			break;
 		}
 
 		if ((t = PEEKT(p)).t != TOKEN_COMMA && t.t != TOKEN_SEMICOLON) {
@@ -869,10 +890,8 @@ void link_goto(struct stmt *stmt, struct stmt *_parent, void *_tab) {
 void correct_goto_labels(struct fun *fun) {
 	visit_stmts(fun, link_goto, (void*)&fun->labels);
 }
-	      
-struct fun *parse_fun(struct parser *p) {
-	struct type *ret_type = parse_type_full(p);
-	struct token namet = skip(p, TOKEN_ID, "function name");
+
+static struct vec parse_params(struct parser *p) {
 	skip(p, TOKEN_LPAREN, "(");
 	struct vec params;
 	vec_init(&params);
@@ -898,10 +917,27 @@ struct fun *parse_fun(struct parser *p) {
 		}
 	}
 	SKIPT(p);
+
+	return params;
+}
+
+struct fun *parse_fun(struct parser *p) {
+	struct type *ret_type = parse_type_full(p);
+	struct token namet = skip(p, TOKEN_ID, "function name");
+	
+	struct vec params = parse_params(p);
 	
 	struct type *type = build_type(TYPE_FUN);
 	type->v.fun.ret = ret_type;
 
+	struct vec param_types;
+	vec_init(&param_types);
+	for (size_t i = 0; i < VEC_SIZE(params, struct param); i++) {
+		struct param *param = VEC_INDEX(&params, i, struct param);
+		VEC_PUSH(&param_types, &param->type, struct type *);
+	}
+	type->v.fun.params = param_types;
+	
 	struct var_ref *ref = add_var(p->scope, namet.v.id);
 	ref->type = type;
 
@@ -911,7 +947,6 @@ struct fun *parse_fun(struct parser *p) {
 	p->labels = &labels;
 	
 	struct stmt *body = parse_block(p, &params);
-
 
 	struct fun *ret = calloc(1, sizeof(struct fun));
 	ret->body = body;

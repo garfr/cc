@@ -276,6 +276,7 @@ static const char *type_kind_str[] = {
     [TYPE_VOID] = "TYPE_VOID",   [TYPE_CHAR] = "TYPE_CHAR",
     [TYPE_SHORT] = "TYPE_SHORT", [TYPE_INT] = "TYPE_INT",
     [TYPE_LONG] = "TYPE_LONG",   [TYPE_PTR] = "TYPE_PTR",
+    [TYPE_FUN] = "TYPE_FUN",
 };
 
 void display_type(FILE *file, struct type *type, int i) {
@@ -293,6 +294,15 @@ void display_type(FILE *file, struct type *type, int i) {
 	case TYPE_PTR:
 		fprintf(file, "\n");
 		display_type(file, type->v.ptr, i + 1);
+		break;
+	case TYPE_FUN:
+		fprintf(file, "\n");
+		display_type(file, type->v.fun.ret, i + 1);
+		for (size_t idx = 0; idx < VEC_SIZE(type->v.fun.params, struct type *); idx++) {
+			fprintf(file, "\n");
+			struct type *tmp = *VEC_INDEX(&type->v.fun.params, idx, struct type *);
+			display_type(file, tmp, i + 1);
+		}
 		break;
         default:
                 break;

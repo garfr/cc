@@ -45,6 +45,7 @@ struct type {
                 struct type *ptr;
 		struct {
 			struct type *ret;
+			struct vec params; /* struct type * */
 		} fun;
         } v;
 };
