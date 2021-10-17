@@ -665,7 +665,7 @@ static struct stmt *parse_stmt(struct parser *p);
 
 struct stmt *parse_block(struct parser *p, struct vec *params) {
 	struct stmt *ret;
-	struct token t = skip(p, TOKEN_LCURLY, "}");
+	struct token t = skip(p, TOKEN_LCURLY, "{");
 	
 	struct vec block;
 	vec_init(&block);
@@ -876,18 +876,19 @@ struct fun *parse_fun(struct parser *p) {
 	skip(p, TOKEN_LPAREN, "(");
 	struct vec params;
 	vec_init(&params);
-	
-	while (PEEKT(p).t != TOKEN_LPAREN) {
+
+	while (PEEKT(p).t != TOKEN_RPAREN) {
 		struct param param;
 		param.type = parse_type_full(p);
 		struct token tok = skip(p, TOKEN_ID, "param name");
 		param.name = tok.v.id;
 		VEC_PUSH(&params, &param, struct param);
-		struct token t = NEXTT(p);
+		struct token t = PEEKT(p);
 		if (t.t == TOKEN_RPAREN) {
 			break;
 		}
 		else if (t.t == TOKEN_COMMA) {
+			SKIPT(p);
 			continue;
 		}
 		else {
@@ -896,6 +897,7 @@ struct fun *parse_fun(struct parser *p) {
 			exit(EXIT_FAILURE);
 		}
 	}
+	SKIPT(p);
 	
 	struct type *type = build_type(TYPE_FUN);
 	type->v.fun.ret = ret_type;
