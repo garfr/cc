@@ -268,7 +268,8 @@ static const char *stmt_kind_str[] = {
     [STMT_EXPR] = "STMT_EXPR", [STMT_RETURN] = "STMT_RETURN",
     [STMT_NULL] = "STMT_NULL", [STMT_DEFAULT] = "STMT_DEFAULT",
     [STMT_LABEL] = "STMT_LABEL", [STMT_CASE] = "STMT_CASE",
-    [STMT_GOTO] = "STMT_GOTO",
+    [STMT_GOTO] = "STMT_GOTO", [STMT_BREAK] = "STMT_BREAK",
+    [STMT_CONTINUE] = "STMT_CONTINUE",
 };
 
 static const char *type_kind_str[] = {
@@ -342,8 +343,10 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
                 display_stmt(file, stmt->v._switch.body, i + 1);
                 break;
         case STMT_FOR:
-                fprintf(file, "\n");
-                display_expr(file, stmt->v._for.init, i + 1);
+		if (stmt->v._for.init) {
+			fprintf(file, "\n");
+			display_expr(file, stmt->v._for.init, i + 1);
+		}
                 fprintf(file, "\n");
                 display_expr(file, stmt->v._for.cond, i + 1);
                 fprintf(file, "\n");
@@ -367,6 +370,9 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
                 fprintf(file, "\n");
                 display_expr(file, stmt->v.expr, i + 1);
                 break;
+	case STMT_BREAK:
+	case STMT_CONTINUE:
+		break;
         case STMT_RETURN:
                 fprintf(file, "\n");
                 display_expr(file, stmt->v.ret, i + 1);
@@ -469,8 +475,8 @@ static void recurse_visit_stmt(struct stmt *stmt,
 		break;
         case STMT_BLOCK: {
 		for (size_t i = 0; i < VEC_SIZE(stmt->v.block.items, struct stmt *); i++) {
-			struct stmt *tmp = *VEC_INDEX(&stmt->v.block.items, i, struct stmt *);
-			recurse_visit_stmt(tmp, stmt, callback, ud);
+			struct stmt**tmp = VEC_INDEX(&stmt->v.block.items, i, struct stmt *);
+			recurse_visit_stmt(*tmp, stmt, callback, ud);
 		}
 		break;
 	}
@@ -478,6 +484,8 @@ static void recurse_visit_stmt(struct stmt *stmt,
 	case STMT_GOTO:
 	case STMT_EXPR:
 	case STMT_RETURN:
+	case STMT_BREAK:
+	case STMT_CONTINUE:
 		break;
 	}
 }

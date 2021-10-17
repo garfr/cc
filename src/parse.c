@@ -724,6 +724,59 @@ static struct stmt *parse_stmt(struct parser *p) {
 		ret->v._goto.name = id.v.id;
 		break;
 	}
+	case TOKEN_WHILE: {
+		SKIPT(p);
+		skip(p, TOKEN_LPAREN, "(");
+		struct expr *cond = parse_expr(p);
+		skip(p, TOKEN_RPAREN, ")");
+		struct stmt *body = parse_stmt(p);
+		ret = build_stmt(STMT_WHILE, combine_ranges(t.pos, body->pos));
+		ret->v._while.cond = cond;
+		ret->v._while.body = body;
+		break;
+	}
+	case TOKEN_FOR: {
+		SKIPT(p);
+		skip(p, TOKEN_LPAREN, "(");
+		if (is_type_next(p)) {
+			ret = build_stmt(STMT_BLOCK, t.pos);
+			vec_init(&ret->v.block.items);
+			init_symtab(&ret->v.block.vars, p->scope);
+			p->scope = &ret->v.block.vars;
+			parse_decl(&ret->v.block.items, p);
+			struct expr *cond, *inc;
+			cond = parse_expr(p);
+			skip(p, TOKEN_SEMICOLON, ";");
+			inc = parse_expr(p);
+			skip(p, TOKEN_RPAREN, ")");
+			struct stmt *body = parse_stmt(p);			
+			p->scope = p->scope->up;
+			ret->pos = combine_ranges(t.pos, body->pos);
+			struct stmt *inner_for = build_stmt(STMT_FOR, combine_ranges(t.pos, body->pos));
+			inner_for->v._for.init = NULL;
+			inner_for->v._for.cond = cond;
+			inner_for->v._for.inc = inc;
+			inner_for->v._for.body = body;
+			VEC_PUSH(&ret->v.block.items, &inner_for, struct stmt *);
+		} else {
+			struct expr *init, *cond, *inc;
+			init = parse_expr(p);
+			skip(p, TOKEN_SEMICOLON, ";");
+			cond = parse_expr(p);
+			skip(p, TOKEN_SEMICOLON, ";");
+			inc = parse_expr(p);
+			skip(p, TOKEN_RPAREN, ")");
+
+			struct stmt *body = parse_stmt(p);
+
+			ret = build_stmt(STMT_FOR, combine_ranges(t.pos, body->pos));
+			ret->v._for.init = init;
+			ret->v._for.cond = cond;
+			ret->v._for.inc = inc;
+			ret->v._for.body= body;
+		}
+		break;
+	}
         case TOKEN_SEMICOLON:
                 ret = build_stmt(STMT_NULL, t.pos);
                 break;
@@ -735,6 +788,18 @@ static struct stmt *parse_stmt(struct parser *p) {
                 ret->v.ret = val;
                 break;
         }
+	case TOKEN_BREAK: {
+		SKIPT(p);
+		struct src_range last = skipr(p, TOKEN_SEMICOLON, ";");
+		ret = build_stmt(STMT_BREAK, combine_ranges(t.pos, last));
+		break;
+	}
+	case TOKEN_CONTINUE: {
+		SKIPT(p);
+		struct src_range last = skipr(p, TOKEN_SEMICOLON, ";");
+		ret = build_stmt(STMT_CONTINUE, combine_ranges(t.pos, last));
+		break;
+	}
         case TOKEN_IF: {
                 SKIPT(p);
                 skipr(p, TOKEN_LPAREN, "(");

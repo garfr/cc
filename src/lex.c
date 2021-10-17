@@ -56,7 +56,7 @@ static void skip_whitespace(struct lexer *l) {
 }
 
 enum token_kind keyword_map_start = TOKEN_AUTO;
-enum token_kind keyword_map_end = TOKEN_WHILE;
+enum token_kind keyword_map_end = TOKEN_IMAGINARY;
 
 const char *keyword_map[] = {
     [TOKEN_AUTO] = "auto",
@@ -101,7 +101,7 @@ const char *keyword_map[] = {
 
 /* returns TOKEN_ID if not a keyword, otherwise the token variant */
 static enum token_kind find_keywords(struct lexer *l) {
-        for (size_t i = keyword_map_start; i < keyword_map_end; i++) {
+        for (size_t i = keyword_map_start; i <= keyword_map_end; i++) {
                 if (strneq(keyword_map[i], strlen(keyword_map[i]),
                            (const char *)l->file->buf + l->s, l->e - l->s)) {
                         return (enum token_kind)i;

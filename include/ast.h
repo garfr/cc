@@ -216,6 +216,8 @@ enum stmt_kind {
 	STMT_DEFAULT,
         STMT_EXPR,
         STMT_RETURN,
+	STMT_CONTINUE,
+	STMT_BREAK,
         STMT_IF,
         STMT_SWITCH,
         STMT_FOR,
@@ -256,7 +258,7 @@ struct stmt {
                         struct stmt *body;
                 } _switch;
                 struct {
-                        struct expr *init;
+			struct expr *init;
                         struct expr *cond;
                         struct expr *inc;
                         struct stmt *body;
