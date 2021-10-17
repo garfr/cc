@@ -35,6 +35,8 @@ enum type_kind {
         TYPE_LONG,
         TYPE_PTR,
 	TYPE_FUN,
+	TYPE_STRUCT,
+	TYPE_UNION,
 };
 
 struct type {
@@ -47,6 +49,9 @@ struct type {
 			struct type *ret;
 			struct vec params; /* struct type * */
 		} fun;
+		struct {
+			struct symtab members;
+		} _struct;
         } v;
 };
 
@@ -295,6 +300,11 @@ struct fun {
 
 struct trans_unit {
         struct src_file *file;
+	struct symtab global;
+	struct symtab types;
+	struct symtab structs;
+	struct symtab enums;
+	struct symtab unions;
 	struct vec funs; /* struct fun * */
 };
 

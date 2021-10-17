@@ -11,6 +11,10 @@ struct parser {
         struct lexer *lex;
 	struct symtab *scope;
 	struct symtab *labels;
+	struct symtab *types;
+	struct symtab *structs;
+	struct symtab *enums;
+	struct symtab *unions;
 };
 
 static enum num_type intlit_to_num[] = {
@@ -511,6 +515,50 @@ static bool is_type_next(struct parser *p) {
         }
 }
 
+struct type *parse_type_full(struct parser *p);
+
+struct type * parse_struct_union(struct parser *p, bool is_union) {
+	struct type *type = build_type(is_union ? TYPE_UNION : TYPE_STRUCT);
+	
+	bool has_ident;
+	struct token name;
+	if (PEEKT(p).t == TOKEN_ID) {
+		has_ident = true;
+		name = NEXTT(p);
+		if (PEEKT(p).t != TOKEN_LCURLY) {
+			struct var_ref *ref = find_var(is_union ? p->unions : p->structs, name.v.id);
+			if (ref == NULL) {
+				printf("no %s found with name '", !is_union ? "struct" : "union");
+				print_range(stdout, &name.v.id);
+				printf("'\n");
+				exit(EXIT_FAILURE);
+			}
+			type = ref->type;
+			return type;
+		}
+	}
+
+	skip(p, TOKEN_LCURLY, "{");
+	struct symtab members;
+	init_symtab(&members, NULL);
+	while (PEEKT(p).t != TOKEN_RCURLY) {
+		struct type *mem_type = parse_type_full(p);
+		struct src_range mem_name = skip(p, TOKEN_ID, "member name").v.id;
+		struct var_ref *ref = add_var(&members, mem_name);
+		ref->type = mem_type;
+		skip(p, TOKEN_SEMICOLON, ";");
+	}
+	NEXTT(p);
+
+	type->v._struct.members = members;
+
+	if (has_ident) {
+		struct var_ref *ref = add_var(is_union ? p->unions : p->structs, name.v.id);
+		ref->type = type;
+	}
+	return type;
+}
+
 static struct type *parse_type(struct parser *p) {
 	enum {
 		VOID = 1 << 1,
@@ -528,6 +576,12 @@ static struct type *parse_type(struct parser *p) {
 	while (is_type_next(p)) {
 		struct token t = NEXTT(p);
 		switch (t.t) {
+		case TOKEN_STRUCT:
+			ret = parse_struct_union(p, false);
+			continue;
+		case TOKEN_UNION:
+			ret = parse_struct_union(p, true);
+			continue;
 		case TOKEN_VOID:
 			builtins |= VOID;
 			break;
@@ -961,12 +1015,21 @@ struct fun *parse_fun(struct parser *p) {
 
 struct trans_unit parse_translation_unit(struct lexer *lex) {
         struct parser p;
-	struct symtab global;
-	init_symtab(&global, NULL);
-
-        p.lex = lex;
-	p.scope = &global;
 	struct trans_unit tunit;
+
+	init_symtab(&tunit.global, NULL);
+	init_symtab(&tunit.types, NULL);
+	init_symtab(&tunit.structs, NULL);
+	init_symtab(&tunit.unions, NULL);
+	init_symtab(&tunit.enums, NULL);
+	
+        p.lex = lex;
+	p.scope = &tunit.global;
+	p.types = &tunit.types;
+	p.enums = &tunit.enums;
+	p.unions = &tunit.unions;
+	p.structs = &tunit.structs;
+	
         tunit.file = lex_get_file(lex);
 	vec_init(&tunit.funs);
 

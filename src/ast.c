@@ -276,7 +276,8 @@ static const char *type_kind_str[] = {
     [TYPE_VOID] = "TYPE_VOID",   [TYPE_CHAR] = "TYPE_CHAR",
     [TYPE_SHORT] = "TYPE_SHORT", [TYPE_INT] = "TYPE_INT",
     [TYPE_LONG] = "TYPE_LONG",   [TYPE_PTR] = "TYPE_PTR",
-    [TYPE_FUN] = "TYPE_FUN",
+    [TYPE_FUN] = "TYPE_FUN", [TYPE_STRUCT] = "TYPE_STRUCT",
+    [TYPE_UNION] = "TYPE_UNION",
 };
 
 void display_type(FILE *file, struct type *type, int i) {
@@ -304,8 +305,24 @@ void display_type(FILE *file, struct type *type, int i) {
 			display_type(file, tmp, i + 1);
 		}
 		break;
-        default:
+	case TYPE_STRUCT:
+	case TYPE_UNION:
+		fprintf(file, "\n");
+		struct symtab *tab = &type->v._struct.members;
+		for (size_t idx = 0; idx < tab->sz; idx++) {
+			struct var_ref *iter = tab->buckets[idx];
+			for (; iter != NULL; iter = iter->next) {
+				print_indents(file, i + 1);
+				print_range(file, &iter->name);
+				fprintf(file, " : \n");
+				
+				display_type(file, iter->type, i + 2);
+				fprintf(file, "\n");
+			}
+		}
                 break;
+	case TYPE_VOID:
+		break;
         }
 }
 
