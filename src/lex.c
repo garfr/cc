@@ -12,17 +12,21 @@
 struct lexer {
         struct src_file *file;
         size_t s, e;
-        bool peekf, peekf2;
-        struct token peek, peek2;
+	bool sol;
+	struct token peek;
+	int peekf;
+	int include_mode;
 };
+
 
 struct lexer *lex_new(struct src_file *file) {
         struct lexer *l = calloc(sizeof(struct lexer), 1);
 
         l->file = file;
         l->s = l->e = 0;
-        l->peekf = false;
-
+	l->sol = true;
+	l->peekf = false;
+	l->include_mode = false;
         return l;
 }
 
@@ -46,9 +50,12 @@ static void skip_whitespace(struct lexer *l) {
                                 RESET(l);
                                 return;
                         }
-                } else if (isspace(c))
+                } else if (c == '\n' || (c == '\r' && (SKIPC(l), PEEKC(l) == '\n'))) {
+			l->sol = true;
+			SKIPC(l);
+		} else if (isspace(c)) {
                         SKIPC(l);
-                else {
+		} else {
                         RESET(l);
                         return;
                 }
@@ -121,6 +128,8 @@ static struct token make_tok(struct lexer *l, enum token_kind k) {
         SKIPC(l);
         struct token t;
         t.t = k;
+	t.sol = l->sol;
+	l->sol = false;
         t.pos = make_range(l);
         return t;
 }
@@ -128,6 +137,8 @@ static struct token make_tok(struct lexer *l, enum token_kind k) {
 static struct token make_tok_inplace(struct lexer *l, enum token_kind k) {
         struct token t;
         t.t = k;
+	t.sol = l->sol;
+	l->sol = false;
         t.pos = make_range(l);
         return t;
 }
@@ -330,14 +341,13 @@ static struct token lex_charlit(struct lexer *l) {
 
 static void find_strlit_end(struct lexer *l) {
         int c;
-        for (; (c = NEXTC(l)) != '"';) {
+        for (; ((c = NEXTC(l)) != '"' && !(l->include_mode && c == '>'));) {
                 if (c == '\\')
                         SKIPC(l);
         }
 }
 
 static struct token lex_str(struct lexer *l) {
-        SKIPC(l); // skip "
         const char *start = (const char *)l->file->buf + l->e;
         find_strlit_end(l);
         const char *end = (const char *)l->file->buf + l->e - 1;
@@ -372,7 +382,7 @@ static void skip_comment_line(struct lexer *l) {
                 SKIPC(l);
 }
 
-static struct token get_tok(struct lexer *l) {
+struct token lex_get(struct lexer *l) {
         skip_whitespace(l);
 
         int c = PEEKC(l);
@@ -385,9 +395,10 @@ static struct token get_tok(struct lexer *l) {
         if (c == '\'')
                 return lex_charlit(l);
 
-        if (c == '\"')
+        if (c == '\"') {
+		SKIPC(l);
                 return lex_str(l);
-
+	}
         if (isalpha(c) || c == '_') {
                 return lex_id(l);
         }
@@ -454,7 +465,7 @@ static struct token get_tok(struct lexer *l) {
                         return make_tok(l, TOKEN_DIV_ASSN);
                 if (ec == '/') {
                         skip_comment_line(l);
-                        return get_tok(l);
+                        return lex_next(l);
                 }
                 return make_tok_inplace(l, TOKEN_DIV);
         case '~':
@@ -468,6 +479,10 @@ static struct token get_tok(struct lexer *l) {
                         return make_tok(l, TOKEN_MOD_ASSN);
                 return make_tok_inplace(l, TOKEN_MOD);
         case '<':
+		if (l->include_mode) {
+			SKIPC(l);
+			return lex_str(l);
+		}
                 if ((ec = lookahead_char(l)) == '=')
                         return make_tok(l, TOKEN_LTE);
                 else if (ec == '<') {
@@ -518,42 +533,18 @@ static struct token get_tok(struct lexer *l) {
 }
 
 struct token lex_next(struct lexer *l) {
-	if (!l->peekf && !l->peekf2) {
-		return get_tok(l);
-	}
-	if (l->peekf && !l->peekf2) {
+	if (l->peekf) {
 		l->peekf = false;
 		return l->peek;
 	}
-	struct token ret = l->peek;
-	l->peek = l->peek2;
-	l->peekf2 = false;
-	return ret;
+	return lex_get(l);
 }
 
 struct token lex_peek(struct lexer *l) {
-        if (l->peekf)
-                return l->peek;
-        l->peekf = true;
-        return l->peek = get_tok(l);
-}
-
-struct token lex_peek2(struct lexer *l) {
-	if (l->peekf2) {
-		return l->peek2;
-	} else if (l->peekf) {
-		l->peekf2 = true;
-		return l->peek2 = get_tok(l);
-	} else {
-		l->peekf = true;
-		l->peek = get_tok(l);
-		l->peekf2 = true;
-		return l->peek2 = get_tok(l);
-	}
-}
-
-void lex_skip(struct lexer *l) {
-	lex_next(l);
+	if (l->peekf)
+		return l->peek;
+	l->peekf = true;
+	return l->peek = lex_get(l);
 }
 
 const char *tok_kind_name[] = {
@@ -666,5 +657,16 @@ void lex_print(FILE *f, struct token tok) {
         if (tok.t == TOKEN_STR) {
                 fprintf(f, " : \"%.*s\"", (int)tok.v.str.len, tok.v.str.buf);
         }
-        fprintf(f, "\n");
+        fprintf(f, ": %d\n", tok.sol);
+}
+
+
+void
+lex_enable_include(struct lexer *l) {
+	l->include_mode = true;
+}
+
+void
+lex_disable_include(struct lexer *l) {
+	l->include_mode = false;
 }

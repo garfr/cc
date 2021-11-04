@@ -7,6 +7,7 @@ src = [
     'src/helpers.c',
     'src/ast.c',
     'src/parse.c',
+    'src/pp.c',
 ]
 
 inc = include_directories('include')

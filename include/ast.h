@@ -1,26 +1,11 @@
 #ifndef CC_AST_H
 #define CC_AST_H
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
+#include "stddef.h"
+#include "stdint.h"
+#include "stdio.h"
 
 #include "helpers.h"
-
-struct type;
-
-struct var_ref {
-        struct src_range name;
-	struct type *type;
-	struct stmt *label_loc;
-	struct var_ref *next;
-};
-
-struct symtab {
-	struct symtab *up;
-	struct var_ref **buckets;
-	size_t sz;
-};
 
 enum num_sign {
         NUM_SIGNED,
@@ -322,10 +307,6 @@ void print_fun(FILE *file, struct fun *fun);
 void print_trans_unit(FILE *file, struct trans_unit tunit);
 
 struct type *clone_type(struct type *type);
-
-void init_symtab(struct symtab *tab, struct symtab *up);
-struct var_ref *add_var(struct symtab *tab, struct src_range name);
-struct var_ref *find_var(struct symtab *tab, struct src_range name);
 
 typedef void (*stmt_visit)(struct stmt *, struct stmt *, void *);
 

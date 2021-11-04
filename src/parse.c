@@ -1,14 +1,15 @@
 #include <stdlib.h>
 
 #include "parse.h"
+#include "pp.h"
 
-#define NEXTT(p) (lex_next((p)->lex))
-#define SKIPT(p) (lex_skip((p)->lex))
-#define PEEKT(p) (lex_peek((p)->lex))
-#define PEEKT2(p) (lex_peek2((p)->lex))
+#define NEXTT(p) (pp_next(&(p)->pp))
+#define SKIPT(p) (pp_skip(&(p)->pp))
+#define PEEKT(p) (pp_peek(&(p)->pp))
+#define PEEKT2(p) (pp_peek2(&(p)->pp))
 
 struct parser {
-        struct lexer *lex;
+        struct pp pp;
 	struct symtab *scope;
 	struct symtab *labels;
 	struct symtab *types;
@@ -49,6 +50,7 @@ static struct src_range skipr(struct parser *p, enum token_kind t,
 static struct token skip(struct parser *p, enum token_kind t, const char *str) {
         struct token tok = NEXTT(p);
         if (tok.t != t) {
+		lex_print(stdout, tok);
                 printf("error: expected token '%s'\n", str);
                 exit(EXIT_FAILURE);
         }
@@ -978,7 +980,7 @@ static struct vec parse_params(struct parser *p) {
 struct fun *parse_fun(struct parser *p) {
 	struct type *ret_type = parse_type_full(p);
 	struct token namet = skip(p, TOKEN_ID, "function name");
-	
+
 	struct vec params = parse_params(p);
 	
 	struct type *type = build_type(TYPE_FUN);
@@ -1023,7 +1025,7 @@ struct trans_unit parse_translation_unit(struct lexer *lex) {
 	init_symtab(&tunit.unions, NULL);
 	init_symtab(&tunit.enums, NULL);
 	
-        p.lex = lex;
+        pp_init(&p.pp, lex);
 	p.scope = &tunit.global;
 	p.types = &tunit.types;
 	p.enums = &tunit.enums;

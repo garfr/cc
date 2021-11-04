@@ -47,54 +47,6 @@ void init_builtin_types() {
         type_ulong = &_type_ulong;
 }
 
-void init_symtab(struct symtab *out, struct symtab *up) {
-	out->up = up;
-	out->buckets = calloc(8, sizeof(struct var_ref *));
-	out->sz = 8;
-}
-
-static size_t hash_name(struct src_range name) {
-	size_t total = 0;
-	for (size_t i = name.s1; i < name.s2; i++) {
-		total += name.f->buf[i];
-		total *= 10;
-	}
-	return total;
-}
-
-struct var_ref *add_var(struct symtab *tab, struct src_range name) {
-	size_t idx = hash_name(name) % tab->sz;
-
-	struct var_ref *iter = tab->buckets[idx];
-	while (iter != NULL) {
-		if (rangeeq(iter->name, name)) {
-			printf("var already exists in scope.");
-						exit(EXIT_FAILURE);
-		}
-		iter = iter->next;
-	}
-	struct var_ref *new = calloc(1, sizeof(struct var_ref));
-	new->next = tab->buckets[idx];
-	tab->buckets[idx] = new;
-	new->name = name;
-	return new;
-}
-
-struct var_ref *find_var(struct symtab *tab, struct src_range name) {
-	size_t idx = hash_name(name) % tab->sz;
-
-	for (; tab != NULL; tab = tab->up) {
-		struct var_ref *iter = tab->buckets[idx];
-		while (iter != NULL) {
-			if (rangeeq(iter->name, name)) {
-				return iter;
-			}
-			iter = iter->next;
-		}
-	}
-	return NULL;
-}
-
 struct expr *build_expr(enum expr_kind t, struct src_range pos) {
         struct expr *node = calloc(1, sizeof(struct expr));
         node->t = t;

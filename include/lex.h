@@ -1,7 +1,7 @@
 #ifndef CC_LEX_H
 #define CC_LEX_H
 
-#include <stdio.h>
+#include "stdio.h"
 
 #include "helpers.h"
 
@@ -126,7 +126,8 @@ struct tok_num {
 struct token {
         enum token_kind t;
         struct src_range pos;
-
+	bool sol;
+	
         union {
                 struct src_range id;
                 struct {
@@ -144,8 +145,9 @@ void lex_free(struct lexer *l);
 
 struct token lex_next(struct lexer *l);
 struct token lex_peek(struct lexer *l);
-struct token lex_peek2(struct lexer *l);
-void lex_skip(struct lexer *l);
+
+void lex_enable_include(struct lexer *l);
+void lex_disable_include(struct lexer *l);
 
 void lex_print(FILE *f, struct token tok);
 
