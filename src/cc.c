@@ -38,8 +38,8 @@ int main(int argc, const char **argv) {
                 return EXIT_FAILURE;
         }
 
-        struct src_file* comp_unit = src_file_open(input_flag.arg.str, 0);
-	if (comp_unit == NULL) {
+        struct src_file *comp_unit = src_file_open(input_flag.arg.str, 0);
+        if (comp_unit == NULL) {
                 printf("couldn't find file '%s'\n", input_flag.arg.str);
                 return EXIT_FAILURE;
         }

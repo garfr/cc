@@ -19,9 +19,9 @@ enum type_kind {
         TYPE_INT,
         TYPE_LONG,
         TYPE_PTR,
-	TYPE_FUN,
-	TYPE_STRUCT,
-	TYPE_UNION,
+        TYPE_FUN,
+        TYPE_STRUCT,
+        TYPE_UNION,
 };
 
 struct type {
@@ -30,13 +30,13 @@ struct type {
 
         union {
                 struct type *ptr;
-		struct {
-			struct type *ret;
-			struct vec params; /* struct type * */
-		} fun;
-		struct {
-			struct symtab members;
-		} _struct;
+                struct {
+                        struct type *ret;
+                        struct vec params; /* struct type * */
+                } fun;
+                struct {
+                        struct symtab members;
+                } _struct;
         } v;
 };
 
@@ -202,13 +202,13 @@ struct expr {
 };
 
 enum stmt_kind {
-	STMT_LABEL,
-	STMT_CASE,
-	STMT_DEFAULT,
+        STMT_LABEL,
+        STMT_CASE,
+        STMT_DEFAULT,
         STMT_EXPR,
         STMT_RETURN,
-	STMT_CONTINUE,
-	STMT_BREAK,
+        STMT_CONTINUE,
+        STMT_BREAK,
         STMT_IF,
         STMT_SWITCH,
         STMT_FOR,
@@ -216,7 +216,7 @@ enum stmt_kind {
         STMT_DO,
         STMT_BLOCK,
         STMT_NULL, /* semicolon with no other tokens */
-	STMT_GOTO,
+        STMT_GOTO,
 };
 
 struct stmt {
@@ -226,19 +226,19 @@ struct stmt {
         union {
                 struct expr *ret;
                 struct expr *expr;
-		struct {
-			struct var_ref *name;
-			struct stmt *stmt;
-		} label;
-		struct {
-			struct var_ref *ref;
-			struct src_range name;
-		} _goto;
-		struct {
-			struct expr *val;
-			struct stmt *stmt;
-		} _case;
-		struct stmt *_default;
+                struct {
+                        struct var_ref *name;
+                        struct stmt *stmt;
+                } label;
+                struct {
+                        struct var_ref *ref;
+                        struct src_range name;
+                } _goto;
+                struct {
+                        struct expr *val;
+                        struct stmt *stmt;
+                } _case;
+                struct stmt *_default;
                 struct {
                         struct expr *cond;
                         struct stmt *t;
@@ -249,7 +249,7 @@ struct stmt {
                         struct stmt *body;
                 } _switch;
                 struct {
-			struct expr *init;
+                        struct expr *init;
                         struct expr *cond;
                         struct expr *inc;
                         struct stmt *body;
@@ -264,33 +264,33 @@ struct stmt {
                 } _do;
                 struct {
                         struct vec items; /* struct stmt * */
-			struct symtab vars;
+                        struct symtab vars;
                 } block;
-		
+
         } v;
 };
 
 struct param {
-	struct type *type;
-	struct var_ref *ref;
-	struct src_range name;
+        struct type *type;
+        struct var_ref *ref;
+        struct src_range name;
 };
 
 struct fun {
-	struct stmt *body; /* MUST be a STMT_BLOCK. */
-	struct symtab labels;
-	struct var_ref *name;
-	struct vec params; /* struct param */
+        struct stmt *body; /* MUST be a STMT_BLOCK. */
+        struct symtab labels;
+        struct var_ref *name;
+        struct vec params; /* struct param */
 };
 
 struct trans_unit {
         struct src_file *file;
-	struct symtab global;
-	struct symtab types;
-	struct symtab structs;
-	struct symtab enums;
-	struct symtab unions;
-	struct vec funs; /* struct fun * */
+        struct symtab global;
+        struct symtab types;
+        struct symtab structs;
+        struct symtab enums;
+        struct symtab unions;
+        struct vec funs; /* struct fun * */
 };
 
 /* allocates space for builtin types */

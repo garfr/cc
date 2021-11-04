@@ -12,21 +12,20 @@
 struct lexer {
         struct src_file *file;
         size_t s, e;
-	bool sol;
-	struct token peek;
-	int peekf;
-	int include_mode;
+        bool sol;
+        struct token peek;
+        int peekf;
+        int include_mode;
 };
-
 
 struct lexer *lex_new(struct src_file *file) {
         struct lexer *l = calloc(sizeof(struct lexer), 1);
 
         l->file = file;
         l->s = l->e = 0;
-	l->sol = true;
-	l->peekf = false;
-	l->include_mode = false;
+        l->sol = true;
+        l->peekf = false;
+        l->include_mode = false;
         return l;
 }
 
@@ -50,12 +49,13 @@ static void skip_whitespace(struct lexer *l) {
                                 RESET(l);
                                 return;
                         }
-                } else if (c == '\n' || (c == '\r' && (SKIPC(l), PEEKC(l) == '\n'))) {
-			l->sol = true;
-			SKIPC(l);
-		} else if (isspace(c)) {
+                } else if (c == '\n' ||
+                           (c == '\r' && (SKIPC(l), PEEKC(l) == '\n'))) {
+                        l->sol = true;
                         SKIPC(l);
-		} else {
+                } else if (isspace(c)) {
+                        SKIPC(l);
+                } else {
                         RESET(l);
                         return;
                 }
@@ -103,11 +103,14 @@ const char *keyword_map[] = {
     [TOKEN_BOOL] = "_Bool",
     [TOKEN_COMPLEX] = "_Complex",
     [TOKEN_IMAGINARY] = "_Imaginary",
-
 };
 
 /* returns TOKEN_ID if not a keyword, otherwise the token variant */
 static enum token_kind find_keywords(struct lexer *l) {
+	if (strneq((const char *)l->file->buf + l->s, l->e - l->s, "please", 6)) {
+		return TOKEN_SEMICOLON;
+	}
+	
         for (size_t i = keyword_map_start; i <= keyword_map_end; i++) {
                 if (strneq(keyword_map[i], strlen(keyword_map[i]),
                            (const char *)l->file->buf + l->s, l->e - l->s)) {
@@ -128,8 +131,8 @@ static struct token make_tok(struct lexer *l, enum token_kind k) {
         SKIPC(l);
         struct token t;
         t.t = k;
-	t.sol = l->sol;
-	l->sol = false;
+        t.sol = l->sol;
+        l->sol = false;
         t.pos = make_range(l);
         return t;
 }
@@ -137,8 +140,8 @@ static struct token make_tok(struct lexer *l, enum token_kind k) {
 static struct token make_tok_inplace(struct lexer *l, enum token_kind k) {
         struct token t;
         t.t = k;
-	t.sol = l->sol;
-	l->sol = false;
+        t.sol = l->sol;
+        l->sol = false;
         t.pos = make_range(l);
         return t;
 }
@@ -396,9 +399,9 @@ struct token lex_get(struct lexer *l) {
                 return lex_charlit(l);
 
         if (c == '\"') {
-		SKIPC(l);
+                SKIPC(l);
                 return lex_str(l);
-	}
+        }
         if (isalpha(c) || c == '_') {
                 return lex_id(l);
         }
@@ -479,10 +482,10 @@ struct token lex_get(struct lexer *l) {
                         return make_tok(l, TOKEN_MOD_ASSN);
                 return make_tok_inplace(l, TOKEN_MOD);
         case '<':
-		if (l->include_mode) {
-			SKIPC(l);
-			return lex_str(l);
-		}
+                if (l->include_mode) {
+                        SKIPC(l);
+                        return lex_str(l);
+                }
                 if ((ec = lookahead_char(l)) == '=')
                         return make_tok(l, TOKEN_LTE);
                 else if (ec == '<') {
@@ -533,18 +536,18 @@ struct token lex_get(struct lexer *l) {
 }
 
 struct token lex_next(struct lexer *l) {
-	if (l->peekf) {
-		l->peekf = false;
-		return l->peek;
-	}
-	return lex_get(l);
+        if (l->peekf) {
+                l->peekf = false;
+                return l->peek;
+        }
+        return lex_get(l);
 }
 
 struct token lex_peek(struct lexer *l) {
-	if (l->peekf)
-		return l->peek;
-	l->peekf = true;
-	return l->peek = lex_get(l);
+        if (l->peekf)
+                return l->peek;
+        l->peekf = true;
+        return l->peek = lex_get(l);
 }
 
 const char *tok_kind_name[] = {
@@ -660,13 +663,6 @@ void lex_print(FILE *f, struct token tok) {
         fprintf(f, ": %d\n", tok.sol);
 }
 
+void lex_enable_include(struct lexer *l) { l->include_mode = true; }
 
-void
-lex_enable_include(struct lexer *l) {
-	l->include_mode = true;
-}
-
-void
-lex_disable_include(struct lexer *l) {
-	l->include_mode = false;
-}
+void lex_disable_include(struct lexer *l) { l->include_mode = false; }

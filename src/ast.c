@@ -214,13 +214,20 @@ void print_expr(FILE *file, struct expr *expr) {
 }
 
 static const char *stmt_kind_str[] = {
-    [STMT_IF] = "STMT_IF",     [STMT_SWITCH] = "STMT_SWITCH",
-    [STMT_FOR] = "STMT_FOR",   [STMT_WHILE] = "STMT_WHILE",
-    [STMT_DO] = "STMT_DO",     [STMT_BLOCK] = "STMT_BLOCK",
-    [STMT_EXPR] = "STMT_EXPR", [STMT_RETURN] = "STMT_RETURN",
-    [STMT_NULL] = "STMT_NULL", [STMT_DEFAULT] = "STMT_DEFAULT",
-    [STMT_LABEL] = "STMT_LABEL", [STMT_CASE] = "STMT_CASE",
-    [STMT_GOTO] = "STMT_GOTO", [STMT_BREAK] = "STMT_BREAK",
+    [STMT_IF] = "STMT_IF",
+    [STMT_SWITCH] = "STMT_SWITCH",
+    [STMT_FOR] = "STMT_FOR",
+    [STMT_WHILE] = "STMT_WHILE",
+    [STMT_DO] = "STMT_DO",
+    [STMT_BLOCK] = "STMT_BLOCK",
+    [STMT_EXPR] = "STMT_EXPR",
+    [STMT_RETURN] = "STMT_RETURN",
+    [STMT_NULL] = "STMT_NULL",
+    [STMT_DEFAULT] = "STMT_DEFAULT",
+    [STMT_LABEL] = "STMT_LABEL",
+    [STMT_CASE] = "STMT_CASE",
+    [STMT_GOTO] = "STMT_GOTO",
+    [STMT_BREAK] = "STMT_BREAK",
     [STMT_CONTINUE] = "STMT_CONTINUE",
 };
 
@@ -228,7 +235,7 @@ static const char *type_kind_str[] = {
     [TYPE_VOID] = "TYPE_VOID",   [TYPE_CHAR] = "TYPE_CHAR",
     [TYPE_SHORT] = "TYPE_SHORT", [TYPE_INT] = "TYPE_INT",
     [TYPE_LONG] = "TYPE_LONG",   [TYPE_PTR] = "TYPE_PTR",
-    [TYPE_FUN] = "TYPE_FUN", [TYPE_STRUCT] = "TYPE_STRUCT",
+    [TYPE_FUN] = "TYPE_FUN",     [TYPE_STRUCT] = "TYPE_STRUCT",
     [TYPE_UNION] = "TYPE_UNION",
 };
 
@@ -243,44 +250,44 @@ void display_type(FILE *file, struct type *type, int i) {
         case TYPE_LONG:
                 fprintf(file, "%s",
                         type->sign == NUM_SIGNED ? "SIGNED" : "UNSIGNED");
-		break;
-	case TYPE_PTR:
-		fprintf(file, "\n");
-		display_type(file, type->v.ptr, i + 1);
-		break;
-	case TYPE_FUN:
-		fprintf(file, "\n");
-		display_type(file, type->v.fun.ret, i + 1);
-		for (size_t idx = 0; idx < VEC_SIZE(type->v.fun.params, struct type *); idx++) {
-			fprintf(file, "\n");
-			struct type *tmp = *VEC_INDEX(&type->v.fun.params, idx, struct type *);
-			display_type(file, tmp, i + 1);
-		}
-		break;
-	case TYPE_STRUCT:
-	case TYPE_UNION:
-		fprintf(file, "\n");
-		struct symtab *tab = &type->v._struct.members;
-		for (size_t idx = 0; idx < tab->sz; idx++) {
-			struct var_ref *iter = tab->buckets[idx];
-			for (; iter != NULL; iter = iter->next) {
-				print_indents(file, i + 1);
-				print_range(file, &iter->name);
-				fprintf(file, " : \n");
-				
-				display_type(file, iter->type, i + 2);
-				fprintf(file, "\n");
-			}
-		}
                 break;
-	case TYPE_VOID:
-		break;
+        case TYPE_PTR:
+                fprintf(file, "\n");
+                display_type(file, type->v.ptr, i + 1);
+                break;
+        case TYPE_FUN:
+                fprintf(file, "\n");
+                display_type(file, type->v.fun.ret, i + 1);
+                for (size_t idx = 0;
+                     idx < VEC_SIZE(type->v.fun.params, struct type *); idx++) {
+                        fprintf(file, "\n");
+                        struct type *tmp =
+                            *VEC_INDEX(&type->v.fun.params, idx, struct type *);
+                        display_type(file, tmp, i + 1);
+                }
+                break;
+        case TYPE_STRUCT:
+        case TYPE_UNION:
+                fprintf(file, "\n");
+                struct symtab *tab = &type->v._struct.members;
+                for (size_t idx = 0; idx < tab->sz; idx++) {
+                        struct var_ref *iter = tab->buckets[idx];
+                        for (; iter != NULL; iter = iter->next) {
+                                print_indents(file, i + 1);
+                                print_range(file, &iter->name);
+                                fprintf(file, " : \n");
+
+                                display_type(file, iter->type, i + 2);
+                                fprintf(file, "\n");
+                        }
+                }
+                break;
+        case TYPE_VOID:
+                break;
         }
 }
 
-void print_type(FILE *file, struct type *type) {
-	display_type(file, type, 0);
-}
+void print_type(FILE *file, struct type *type) { display_type(file, type, 0); }
 
 void display_stmt(FILE *file, struct stmt *stmt, int i) {
         print_indents(file, i);
@@ -288,23 +295,23 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
         switch (stmt->t) {
         case STMT_NULL:
                 break;
-	case STMT_LABEL:
-		fprintf(file, "\n");
-		print_indents(file, i + 1);
-		print_range(file, &stmt->v.label.name->name);
-		fprintf(file, "\n");
-		display_stmt(file, stmt->v.label.stmt, i + 1);
-		break;
-	case STMT_DEFAULT:
-		fprintf(file, "\n");
-		display_stmt(file, stmt->v._default, i + 1);
-		break;
-	case STMT_CASE:
-		fprintf(file, "\n");
-		display_expr(file, stmt->v._case.val, i + 1);
-		fprintf(file, "\n");
-		display_stmt(file, stmt->v._case.stmt, i + 1);
-		break;
+        case STMT_LABEL:
+                fprintf(file, "\n");
+                print_indents(file, i + 1);
+                print_range(file, &stmt->v.label.name->name);
+                fprintf(file, "\n");
+                display_stmt(file, stmt->v.label.stmt, i + 1);
+                break;
+        case STMT_DEFAULT:
+                fprintf(file, "\n");
+                display_stmt(file, stmt->v._default, i + 1);
+                break;
+        case STMT_CASE:
+                fprintf(file, "\n");
+                display_expr(file, stmt->v._case.val, i + 1);
+                fprintf(file, "\n");
+                display_stmt(file, stmt->v._case.stmt, i + 1);
+                break;
         case STMT_IF:
                 fprintf(file, "\n");
                 display_expr(file, stmt->v._if.cond, i + 1);
@@ -322,10 +329,10 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
                 display_stmt(file, stmt->v._switch.body, i + 1);
                 break;
         case STMT_FOR:
-		if (stmt->v._for.init) {
-			fprintf(file, "\n");
-			display_expr(file, stmt->v._for.init, i + 1);
-		}
+                if (stmt->v._for.init) {
+                        fprintf(file, "\n");
+                        display_expr(file, stmt->v._for.init, i + 1);
+                }
                 fprintf(file, "\n");
                 display_expr(file, stmt->v._for.cond, i + 1);
                 fprintf(file, "\n");
@@ -349,42 +356,43 @@ void display_stmt(FILE *file, struct stmt *stmt, int i) {
                 fprintf(file, "\n");
                 display_expr(file, stmt->v.expr, i + 1);
                 break;
-	case STMT_BREAK:
-	case STMT_CONTINUE:
-		break;
+        case STMT_BREAK:
+        case STMT_CONTINUE:
+                break;
         case STMT_RETURN:
                 fprintf(file, "\n");
                 display_expr(file, stmt->v.ret, i + 1);
                 break;
-	case STMT_GOTO:
-		if (stmt->v._goto.ref) {
-			print_range(file, &stmt->v._goto.ref->name);
-		} else {
-			fprintf(file, "<label not filled in>");
-		}
-		break;
+        case STMT_GOTO:
+                if (stmt->v._goto.ref) {
+                        print_range(file, &stmt->v._goto.ref->name);
+                } else {
+                        fprintf(file, "<label not filled in>");
+                }
+                break;
         case STMT_BLOCK: {
                 for (size_t idx = 0;
-                     idx < VEC_SIZE(stmt->v.block.items, struct stmt*); idx++) {
-                        struct stmt *tmp =
-                            *VEC_INDEX(&stmt->v.block.items, idx, struct stmt*);
+                     idx < VEC_SIZE(stmt->v.block.items, struct stmt *);
+                     idx++) {
+                        struct stmt *tmp = *VEC_INDEX(&stmt->v.block.items, idx,
+                                                      struct stmt *);
                         fprintf(file, "\n");
                         display_stmt(file, tmp, i + 1);
                 }
 
-		fprintf(file, "\n");
-		
-		struct symtab *tab = &stmt->v.block.vars;
-		for (size_t idx = 0; idx < tab->sz; idx++) {
-			struct var_ref *iter = tab->buckets[idx];
-			for (; iter != NULL; iter = iter->next) {
-				print_indents(file, i + 1);
-				print_range(file, &iter->name);
-				fprintf(file, " : \n");
-				display_type(file, iter->type, i + 2);
-				fprintf(file, "\n");
-			}
-		}
+                fprintf(file, "\n");
+
+                struct symtab *tab = &stmt->v.block.vars;
+                for (size_t idx = 0; idx < tab->sz; idx++) {
+                        struct var_ref *iter = tab->buckets[idx];
+                        for (; iter != NULL; iter = iter->next) {
+                                print_indents(file, i + 1);
+                                print_range(file, &iter->name);
+                                fprintf(file, " : \n");
+                                display_type(file, iter->type, i + 2);
+                                fprintf(file, "\n");
+                        }
+                }
         }
         }
 }
@@ -395,86 +403,87 @@ void print_stmt(FILE *file, struct stmt *stmt) {
 }
 
 void print_fun(FILE *file, struct fun *fun) {
-	fprintf(file, "FUN: ");
-	print_range(file, &fun->name->name);
-	fprintf(file, "\n");
-	display_stmt(file, fun->body, 1);
+        fprintf(file, "FUN: ");
+        print_range(file, &fun->name->name);
+        fprintf(file, "\n");
+        display_stmt(file, fun->body, 1);
 }
 
 void print_trans_unit(FILE *file, struct trans_unit tunit) {
-	for (size_t i = 0; i < VEC_SIZE(tunit.funs, struct fun *); i++) {
-		struct fun *fun = *VEC_INDEX(&tunit.funs, i, struct fun *);
-		print_fun(file, fun);
-		fprintf(file, "\n");
-	}
+        for (size_t i = 0; i < VEC_SIZE(tunit.funs, struct fun *); i++) {
+                struct fun *fun = *VEC_INDEX(&tunit.funs, i, struct fun *);
+                print_fun(file, fun);
+                fprintf(file, "\n");
+        }
 }
 
 struct type *clone_type(struct type *type) {
-	struct type *new = calloc(1, sizeof(struct type));
-	*new = *type;
-	return new;
+        struct type *new = calloc(1, sizeof(struct type));
+        *new = *type;
+        return new;
 }
 
 struct type *build_type(enum type_kind t) {
-	struct type *ret = calloc(1, sizeof(struct type));
-	ret->t = t;
-	return ret;
+        struct type *ret = calloc(1, sizeof(struct type));
+        ret->t = t;
+        return ret;
 }
 
 struct type *build_ptr(struct type *type) {
-	struct type *ptr = build_type(TYPE_PTR);
-	ptr->v.ptr = type;
-	return ptr;
+        struct type *ptr = build_type(TYPE_PTR);
+        ptr->v.ptr = type;
+        return ptr;
 }
 
-static void recurse_visit_stmt(struct stmt *stmt,
-			       struct stmt *parent,
-			       stmt_visit callback, void *ud) {
-	callback(stmt, parent, ud);
-	switch(stmt->t) {
-	case STMT_LABEL:
-		recurse_visit_stmt(stmt->v.label.stmt, stmt, callback, ud);
-		break;
-	case STMT_CASE:
-		recurse_visit_stmt(stmt->v._case.stmt, stmt, callback, ud);
-		break;
-	case STMT_DEFAULT:
-		recurse_visit_stmt(stmt->v._default, stmt, callback, ud);
-		break;
+static void recurse_visit_stmt(struct stmt *stmt, struct stmt *parent,
+                               stmt_visit callback, void *ud) {
+        callback(stmt, parent, ud);
+        switch (stmt->t) {
+        case STMT_LABEL:
+                recurse_visit_stmt(stmt->v.label.stmt, stmt, callback, ud);
+                break;
+        case STMT_CASE:
+                recurse_visit_stmt(stmt->v._case.stmt, stmt, callback, ud);
+                break;
+        case STMT_DEFAULT:
+                recurse_visit_stmt(stmt->v._default, stmt, callback, ud);
+                break;
         case STMT_IF:
-		recurse_visit_stmt(stmt->v._if.t, stmt, callback, ud);
-		if (stmt->v._if.f)
-			recurse_visit_stmt(stmt->v._if.f, stmt, callback, ud);
-		break;
+                recurse_visit_stmt(stmt->v._if.t, stmt, callback, ud);
+                if (stmt->v._if.f)
+                        recurse_visit_stmt(stmt->v._if.f, stmt, callback, ud);
+                break;
         case STMT_SWITCH:
-		recurse_visit_stmt(stmt->v._switch.body, stmt, callback, ud);
-		break;
+                recurse_visit_stmt(stmt->v._switch.body, stmt, callback, ud);
+                break;
         case STMT_FOR:
-		recurse_visit_stmt(stmt->v._for.body, stmt, callback, ud);
-		break;
+                recurse_visit_stmt(stmt->v._for.body, stmt, callback, ud);
+                break;
         case STMT_WHILE:
-		recurse_visit_stmt(stmt->v._while.body, stmt, callback, ud);
-		break;
+                recurse_visit_stmt(stmt->v._while.body, stmt, callback, ud);
+                break;
         case STMT_DO:
-		recurse_visit_stmt(stmt->v._do.body, stmt, callback, ud);
-		break;
+                recurse_visit_stmt(stmt->v._do.body, stmt, callback, ud);
+                break;
         case STMT_BLOCK: {
-		for (size_t i = 0; i < VEC_SIZE(stmt->v.block.items, struct stmt *); i++) {
-			struct stmt**tmp = VEC_INDEX(&stmt->v.block.items, i, struct stmt *);
-			recurse_visit_stmt(*tmp, stmt, callback, ud);
-		}
-		break;
-	}
+                for (size_t i = 0;
+                     i < VEC_SIZE(stmt->v.block.items, struct stmt *); i++) {
+                        struct stmt **tmp =
+                            VEC_INDEX(&stmt->v.block.items, i, struct stmt *);
+                        recurse_visit_stmt(*tmp, stmt, callback, ud);
+                }
+                break;
+        }
         case STMT_NULL:
-	case STMT_GOTO:
-	case STMT_EXPR:
-	case STMT_RETURN:
-	case STMT_BREAK:
-	case STMT_CONTINUE:
-		break;
-	}
+        case STMT_GOTO:
+        case STMT_EXPR:
+        case STMT_RETURN:
+        case STMT_BREAK:
+        case STMT_CONTINUE:
+                break;
+        }
 }
 
 void visit_stmts(struct fun *fun, stmt_visit callback, void *ud) {
-	recurse_visit_stmt(fun->body, NULL, callback, ud);
+        recurse_visit_stmt(fun->body, NULL, callback, ud);
 }

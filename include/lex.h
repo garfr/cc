@@ -126,8 +126,8 @@ struct tok_num {
 struct token {
         enum token_kind t;
         struct src_range pos;
-	bool sol;
-	
+        bool sol;
+
         union {
                 struct src_range id;
                 struct {

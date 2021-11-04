@@ -1,20 +1,21 @@
 #ifndef CC_PP_H
 #define CC_PP_H
 
-#include "lex.h"
 #include "helpers.h"
+#include "lex.h"
 
 #define INCLUDE_MAX_SZ 16
 #define MAX_MACRO_NESTING 16
 
 struct pp {
-	struct lexer *lexers[INCLUDE_MAX_SZ];
-	size_t cur_lexer;
-	struct token peek1, peek2;
-	bool peekf1, peekf2;
-	struct symtab defs;
-	struct var_ref *macros[MAX_MACRO_NESTING];
-	size_t cur_macro;
+        struct lexer *lexers[INCLUDE_MAX_SZ];
+        size_t cur_lexer;
+        struct token peek1, peek2;
+        bool peekf1, peekf2;
+        struct symtab defs;
+        struct var_ref *macros[MAX_MACRO_NESTING];
+        size_t cur_macro;
+        int endif_cnt;
 };
 
 void pp_init(struct pp *pp, struct lexer *l);

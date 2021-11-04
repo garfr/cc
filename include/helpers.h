@@ -13,8 +13,8 @@ struct src_file {
         const char *name;
 };
 
-struct src_file * src_file_open(const char *filename, size_t len);
-struct src_file * src_file_open_include(const char *filename, size_t len);
+struct src_file *src_file_open(const char *filename, size_t len);
+struct src_file *src_file_open_include(const char *filename, size_t len);
 void src_file_close(struct src_file *f);
 
 struct src_range {
@@ -27,11 +27,15 @@ void print_range(FILE *f, const struct src_range *rng);
 struct src_range combine_ranges(struct src_range rng1, struct src_range rng2);
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
-#define strneq(s1, l1, s2, l2) (l1 == l2 ? strncmp((char*)s1, (char*)s2, l1) == 0 : false)
+#define strneq(s1, l1, s2, l2)                                                 \
+        (l1 == l2 ? strncmp((char *)s1, (char *)s2, l1) == 0 : false)
 
-#define rangeeq(r1, r2)  strneq(r1.f->buf + r1.s1, r1.s2 - r1.s1, r2.f->buf + r2.s1, r2.s2 - r2.s1)
+#define rangeeq(r1, r2)                                                        \
+        strneq(r1.f->buf + r1.s1, r1.s2 - r1.s1, r2.f->buf + r2.s1,            \
+               r2.s2 - r2.s1)
 
-#define strrange(r1, str) strneq(r1.f->buf + r1.s1, r1.s2 - r1.s1, str, strlen(str))
+#define strrange(r1, str)                                                      \
+        strneq(r1.f->buf + r1.s1, r1.s2 - r1.s1, str, strlen(str))
 
 struct vec {
         uint8_t *buf;
@@ -53,18 +57,18 @@ struct stmt;
 
 struct var_ref {
         struct src_range name;
-	struct type *type;
-	struct stmt *label_loc;
-	struct var_ref *next;
-	struct vec tokens;
-	size_t token_idx;
-	int is_fun_macro;
+        struct type *type;
+        struct stmt *label_loc;
+        struct var_ref *next;
+        struct vec tokens;
+        size_t token_idx;
+        int is_fun_macro;
 };
 
 struct symtab {
-	struct symtab *up;
-	struct var_ref **buckets;
-	size_t sz;
+        struct symtab *up;
+        struct var_ref **buckets;
+        size_t sz;
 };
 
 void init_symtab(struct symtab *tab, struct symtab *up);
