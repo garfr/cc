@@ -1018,7 +1018,6 @@ struct fun *parse_fun(struct parser *p) {
         init_symtab(&labels, NULL);
 
         p->labels = &labels;
-
 	if (PEEKT(p).t == TOKEN_SEMICOLON) {
 		SKIPT(p);
 		return parse_fun(p);
