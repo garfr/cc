@@ -2,6 +2,7 @@
 
 #include "parse.h"
 #include "pp.h"
+#include "helpers.h"
 
 #define NEXTT(p) (pp_next(&(p)->pp))
 #define SKIPT(p) (pp_skip(&(p)->pp))
@@ -66,10 +67,12 @@ static struct expr *parse_primary(struct parser *p) {
         case TOKEN_INTLIT:
                 expr = build_expr(EXPR_NUM, tok.pos);
                 fill_num_expr(&expr->v.num, &tok.v.num);
+                expand_type(expr);
                 break;
-        case TOKEN_ID:
+        case TOKEN_ID: {
+		struct var_ref *entry = find_var(p->scope, tok.v.id);	
                 expr = build_expr(EXPR_VAR, tok.pos);
-                expr->v.var = find_var(p->scope, tok.v.id);
+                expr->v.var = entry;
                 if (expr->v.var == NULL) {
                         printf("cannot find variable '");
                         print_range(stdout, &tok.v.id);
@@ -77,6 +80,7 @@ static struct expr *parse_primary(struct parser *p) {
                         exit(EXIT_FAILURE);
                 }
                 break;
+	}
         case TOKEN_STR:
                 expr = build_expr(EXPR_STR, tok.pos);
                 expr->v.str.buf = (const uint8_t *)tok.v.str.buf;

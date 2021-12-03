@@ -157,7 +157,8 @@ struct member {
 struct expr {
         enum expr_kind t;
         struct src_range pos;
-
+	struct type *type;
+	
         union {
                 struct var_ref *var;
                 struct num num;
@@ -305,6 +306,9 @@ void print_stmt(FILE *file, struct stmt *stmt);
 void print_type(FILE *file, struct type *type);
 void print_fun(FILE *file, struct fun *fun);
 void print_trans_unit(FILE *file, struct trans_unit tunit);
+
+/* Adds the correct type to an expression. */
+void expand_type(struct expr *expr);
 
 struct type *clone_type(struct type *type);
 

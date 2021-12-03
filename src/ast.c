@@ -115,6 +115,9 @@ const char *assn_kind_str[] = {
 static void display_expr(FILE *file, struct expr *expr, int l) {
         print_indents(file, l);
         fprintf(file, "%s : ", expr_kind_str[expr->t]);
+	if (expr->type == NULL) {
+		fprintf(file, "NO TYPE : ");
+	}
 
         switch (expr->t) {
         case EXPR_NUM:
@@ -486,4 +489,11 @@ static void recurse_visit_stmt(struct stmt *stmt, struct stmt *parent,
 
 void visit_stmts(struct fun *fun, stmt_visit callback, void *ud) {
         recurse_visit_stmt(fun->body, NULL, callback, ud);
+}
+
+void expand_type(struct expr *expr) {
+        switch (expr->t) {
+                case EXPR_NUM:
+                
+        }
 }
